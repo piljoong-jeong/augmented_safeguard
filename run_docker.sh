@@ -1,7 +1,7 @@
 NAME_PROJECT=$(basename ${PWD})
 
 COMMANDS_BUILD="\
-	-t $NAME_PROJECT -f docker/Dockerfile ."
+	-t $NAME_PROJECT -f docker/Dockerfile2 ."
 docker build $COMMANDS_BUILD
 
 COMMANDS_RUN="\
