@@ -7,7 +7,8 @@
 
 CMD_RUN="-it \
 	--gpus all \
-	--mount type=bind,src=/mnt/d,dst=/opt/dataset \
+	--name neuralrouting_ransac \
+	--mount type=bind,src=/mnt/d/RIO10,dst=/opt/dataset \
         piljoong/neuralrouting:ransac"
 
 docker run $CMD_RUN
