@@ -1,0 +1,10 @@
+{
+    // "python.analysis.extraPaths": [
+    //     "/root/anaconda3/lib/python3.9"
+    // ]
+
+    "python.languageServer": "Pylance", 
+    "python.linting.pylintArgs": [
+        "--extension-pkg-whitelist=cv2"
+    ]
+}
