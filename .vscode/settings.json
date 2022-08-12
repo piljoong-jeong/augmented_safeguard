@@ -5,6 +5,7 @@
 
     "python.languageServer": "Pylance", 
     "python.linting.pylintArgs": [
-        "--extension-pkg-whitelist=cv2"
+        "--extension-pkg-whitelist=cv2", 
+        "--errors-only", 
     ]
 }
