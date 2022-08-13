@@ -1,3 +1,18 @@
+"""
+copy_NeuralRouting_specific_with_index
+
+This script copies poses from a regression tree with given index to a target directory, and renames them as they are the one with best inference confidence among all regression trees.
+
+---
+
+it is found that `neuralrouting/ransac_v0.2` returns 4 poses, which each corresponds to evaluation for each regression tree.
+
+They mentioned that the final pose is selected from a tree which returns best probability, but the function seems missing.
+
+Nevertheless, we wanted to measure performance on evaluation script provided by RIO10
+
+"""
+
 import os 
 import shutil
 import sys

@@ -1,3 +1,11 @@
+"""
+convert_to_RIO10_format
+
+this script incorporates separated 4*4 pose txt into one text file, 
+with RIO10 format (`test_seq`/`frame_number` `quaternion` `translation`)
+"""
+
+
 import os 
 import shutil
 import sys
