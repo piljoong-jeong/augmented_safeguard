@@ -33,7 +33,7 @@ def main():
     list_dst_filename_poses = [
         os.path.join(
             dir_pose_copied, 
-            "-".join([(tokens:=os.path.basename(filename_src_pose).split("-"))[0], tokens[1], tokens[2][2:]])
+            "-".join([(tokens:=os.path.basename(filename_src_pose).split("-"))[0], tokens[1]]) + tokens[2][1:]
         )
         for filename_src_pose in list_src_filename_poses
     ]
