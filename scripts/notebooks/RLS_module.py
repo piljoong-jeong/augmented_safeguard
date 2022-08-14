@@ -17,13 +17,34 @@ class RLS:
         np.seterr(over="raise")
         try:
             G = (self.P @ z) / (1 + z.T @ self.P @ z)
-            self.P = self.P - ((G @ z.T) * self.P)
-            self.beta = self.beta + G * (y - self.beta.T @ z)
         except FloatingPointError as e:
-            print("[ERROR] FloatingPointError occurred!")
+            print("[ERROR] FloatingPointError occurred while computing G!")
             print(e)
+
             print(f"{self.P=}")
             print(f"{z=}")
+            print(f"{G=}")
+            raise FloatingPointError
+        try:
+            self.P = self.P - ((G @ z.T) * self.P)
+        except FloatingPointError as e:
+            print("[ERROR] FloatingPointError occurred while computing P!")
+            print(e)
+
+            print(f"{self.P=}")
+            print(f"{z=}")
+            print(f"{G=}")
+            raise FloatingPointError
+
+        try:
+            self.beta = self.beta + G * (y - self.beta.T @ z)
+        except FloatingPointError as e:
+            print("[ERROR] FloatingPointError occurred while computing beta!")
+            print(e)
+
+            print(f"{self.P=}")
+            print(f"{z=}")
+            print(f"{G=}")
             print(f"{self.beta=}")
             raise FloatingPointError
 
