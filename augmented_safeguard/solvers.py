@@ -22,10 +22,6 @@ class RecursiveLeastSquares():
         # we don't link it to self.A, self.b since these will change, and after
         # the first P, we will use S-M-W to calculate P instead. 
 
-        print(np.dot(initA.transpose(), initA))
-        print(np.linalg.inv(np.dot(initA.transpose(), initA)))
-        exit()
-
         initialP = np.linalg.inv(np.dot(initA.transpose(), initA))
         self.P = initialP
 
@@ -56,7 +52,7 @@ class RecursiveLeastSquares():
         newb = newb.reshape(-1, 1)
         
         self.b = np.concatenate([self.b, newb])
-        exit()
+        
         # create P by using Sherman-Morrison-Woodburry
         # I separate the formula into chunks for readability, see README for details
 
@@ -97,21 +93,4 @@ if __name__ == "__main__":
         x1 = rls.x
         print(f"{x1=}")
 
-    # ------------
-    A = np.array(
-        [
-            [1.0, 10.0,10.0,10.0],
-        ])
-    b = np.array(
-        [
-            [18.8106],
-        ])
-    rls = RecursiveLeastSquares(A, b)
-    x0 = rls.x
-    print(f"{x0=}")
-
-    print(A[0], b[0])
-    exit()
-    for i in range(100):
-        rls.addData(A[0], b[0])
-        print(rls.x.dot(A[0]), b[0])
+    test_2by1()
