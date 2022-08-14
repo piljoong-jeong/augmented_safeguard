@@ -11,11 +11,21 @@ class RLS:
     
     def add_new(self, x, y):
 
+        
         z = x.reshape((x.shape[0], 1))
-
-        G = (self.P @ z) / (1 + z.T @ self.P @ z)
-        self.P = self.P - ((G @ z.T) * self.P)
-        self.beta = self.beta + G * (y - self.beta.T @ z)
+        
+        np.seterr(over="raise")
+        try:
+            G = (self.P @ z) / (1 + z.T @ self.P @ z)
+            self.P = self.P - ((G @ z.T) * self.P)
+            self.beta = self.beta + G * (y - self.beta.T @ z)
+        except FloatingPointError as e:
+            print("[ERROR] FloatingPointError occurred!")
+            print(e)
+            print(f"{self.P=}")
+            print(f"{z=}")
+            print(f"{self.beta=}")
+            raise FloatingPointError
 
         return
 
