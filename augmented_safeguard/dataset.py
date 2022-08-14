@@ -31,7 +31,9 @@ def pointcloud_from_rgbd(dir_color, dir_depth):
 
 def add_noise_to_depth(o3d_depth: o3d.geometry.Image, sigma: float):
 
-
+    noise = np.random.normal(0, sigma, np.asarray(o3d_depth).shape)
+    np_depth_with_noise = copy.deepcopy(np.asarray(o3d_depth)) + noise
+    depth_with_noise = o3d.geometry.Image()
 
     return NotImplementedError
 
