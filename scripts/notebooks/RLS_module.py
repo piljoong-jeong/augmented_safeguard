@@ -16,6 +16,9 @@ class RLS:
         
         np.seterr(over="raise")
         try:
+            denom = (1 + z.T @ self.P @ z)
+            if denom < 0.005:
+                print(f"[DEBUG] in RLS.add_new(); {denom=} too low!")
             G = (self.P @ z) / (1 + z.T @ self.P @ z)
         except FloatingPointError as e:
             print("[ERROR] FloatingPointError occurred while computing G!")
@@ -35,6 +38,10 @@ class RLS:
             print(f"{z=}")
             print(f"{G=}")
             raise FloatingPointError
+
+        print(f"{G.shape=}")
+        print(f"{self.P.shape=}")
+        print(f"{(self.beta.T @ z).shape=}")
 
         try:
             self.beta = self.beta + G * (y - self.beta.T @ z)
