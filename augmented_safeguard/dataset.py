@@ -245,5 +245,7 @@ if __name__ == "__main__":
         tf_kabsch = asfgd.transformations.pose_from_rot_and_trans(R_, t_.reshape(1, 3))
         print(f"tf_kabsch = \n{tf_kabsch}")
 
+        err_rot = asfgd.metric.error_angular(R, R_)
+        print(f"[DEBUG] err_rot = \n{err_rot}")
 
         exit()
