@@ -228,8 +228,10 @@ if __name__ == "__main__":
     P = asfgd.utility.blockshaped(np.asarray(pcd_local.points)[:n_kabsch], 3, 3)
     Q = asfgd.utility.blockshaped(np.asarray(pcd_global.points)[:n_kabsch], 3, 3)
 
-    for P_, Q_ in zip(P, Q):
-        print(f"P = \n{P_}")
+    list_angular_errors = []
+
+    for idx, (P_, Q_) in enumerate(zip(P, Q)):
+        # print(f"P = \n{P_}")
         
         P_ = np.asmatrix(P_)
         Q_ = np.asmatrix(Q_)
@@ -238,14 +240,31 @@ if __name__ == "__main__":
 
         P_kabsch = (R_ @ Q_.T) + np.tile(t_, (1, 3))
         P_kabsch = P_kabsch.T
-        print(f"P_Kabsch = \n{P_kabsch}")
+        # print(f"P_Kabsch = \n{P_kabsch}")
 
 
-        print(f"tf = \n{tf}")
+        # print(f"tf = \n{tf}")
         tf_kabsch = asfgd.transformations.pose_from_rot_and_trans(R_, t_.reshape(1, 3))
-        print(f"tf_kabsch = \n{tf_kabsch}")
+        # print(f"tf_kabsch = \n{tf_kabsch}")
 
         err_rot = asfgd.metric.error_angular(R, R_)
-        print(f"[DEBUG] err_rot = \n{err_rot}")
+        # print(f"[DEBUG] err_rot = \n{err_rot}")
 
-        exit()
+        list_angular_errors.append(err_rot)
+
+        # if idx == 1000:
+        #     break
+
+    import pandas as pd
+    df = pd.DataFrame()
+    df["frame"] = [i for i in range(len(list_angular_errors))]
+    df["angular error"] = list_angular_errors
+
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+
+    sns.set_theme()
+    sns.set(rc = {'figure.figsize':(20,8)})
+    sns.lineplot(data=df, x="frame", y="angular error")
+    plt.savefig("angular_error_all.png")
+    plt.show()
