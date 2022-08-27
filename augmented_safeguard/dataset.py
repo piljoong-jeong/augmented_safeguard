@@ -8,6 +8,9 @@ import numpy as np
 import open3d as o3d
 import yaml
 
+sys.path.append(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
+import augmented_safeguard as asfgd
+
 # read image
 # point cloud => src
 # noise
@@ -181,14 +184,14 @@ if __name__ == "__main__":
 
     dataset_manager = DatasetManager(DatasetType.RIO10, dir_dataset,  name_train_sequence, name_test_sequence)
 
-    # read camera intrinsics
+    # NOTE: read camera intrinsics
     intrinsics, _ = dataset_manager.read_intrinsics()
     print(intrinsics)
 
-    # read data
+    # NOTE: read data
     dataset = dataset_manager.read_data(num_frames=1)
 
-    # generate local point cloud
+    # NOTE: generate local point cloud
     pcd_local = dataset_manager.pointcloud_from_rgbd(
         dataset["colors"][0],
         dataset["depths"][0],
@@ -198,20 +201,49 @@ if __name__ == "__main__":
     # DEBUG: visualize
     # o3d.visualization.draw_geometries([pcd_local]) # OK
 
-    # generate global point cloud
+    # NOTE: generate global point cloud
     tf = np.loadtxt(dataset["poses"][0])
     
-    # 1. apply transformation directly
-    pcd_global1 = copy.deepcopy(pcd_local)
-    pcd_global1 = pcd_global1.transform(tf)
+    # NOTE: 1. apply transformation directly
+    pcd_global = copy.deepcopy(pcd_local)
+    pcd_global = pcd_global.transform(tf)
 
-    # 2. decompose R & t
+    # NOTE: 2. decompose R & t
     R = tf[:3, :3]
     t = tf[:3, 3]
     pcd_global2 = copy.deepcopy(pcd_local)
     pcd_global2.points = o3d.utility.Vector3dVector((R @ np.asarray(pcd_global2.points).T).T + np.tile(t.reshape((1, 3)), (np.asarray(pcd_global2.points).shape[0], 1)))
 
     # NOTE: o3d.geometry.PointCloud.transform() equivalents to affine transformation
-    assert (np.asarray(pcd_global1.points) == np.asarray(pcd_global2.points)).all()
+    assert (np.asarray(pcd_global.points) == np.asarray(pcd_global2.points)).all()
+    del pcd_global2
 
-    o3d.visualization.draw_geometries([pcd_local, pcd_global1])
+    # o3d.visualization.draw_geometries([pcd_local, pcd_global]) # OK
+
+
+    n_kabsch = np.asarray(pcd_local.points).shape[0] - np.asarray(pcd_local.points).shape[0]%3
+    print(f"{n_kabsch=}")
+
+    # TODO: run Kabsch for each points
+    P = asfgd.utility.blockshaped(np.asarray(pcd_local.points)[:n_kabsch], 3, 3)
+    Q = asfgd.utility.blockshaped(np.asarray(pcd_global.points)[:n_kabsch], 3, 3)
+
+    for P_, Q_ in zip(P, Q):
+        print(f"P = \n{P_}")
+        
+        P_ = np.asmatrix(P_)
+        Q_ = np.asmatrix(Q_)
+
+        _, R_, t_ = asfgd.transformations.rigid_transform_3D(P_, Q_, False)
+
+        P_kabsch = (R_ @ Q_.T) + np.tile(t_, (1, 3))
+        P_kabsch = P_kabsch.T
+        print(f"P_Kabsch = \n{P_kabsch}")
+
+
+        print(f"tf = \n{tf}")
+        tf_kabsch = asfgd.transformations.pose_from_rot_and_trans(R_, t_.reshape(1, 3))
+        print(f"tf_kabsch = \n{tf_kabsch}")
+
+
+        exit()

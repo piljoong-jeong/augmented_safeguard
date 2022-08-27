@@ -32,7 +32,7 @@ def rigid_transform_3D(A, B, scale):
 
     # special reflection case
     if np.linalg.det(R) < 0:
-        print("[DEBUG] Reflection detected")
+        # print("[DEBUG] Reflection detected")
         Vt[2, :] *= -1
         R = Vt.T * U.T
     
@@ -46,6 +46,17 @@ def rigid_transform_3D(A, B, scale):
         t = -R.dot(Bm.T) + Am.T
 
     return c, R, t
+
+def pose_from_rot_and_trans(R: np.ndarray, t: np.ndarray):
+
+    assert len(R.shape) == 2
+    assert R.shape[0] == 3
+    assert R.shape[0] == R.shape[1]
+
+    pose = np.eye(4)
+    pose[:3, :3] = R
+    pose[:3, 3] = t
+    return pose
 
 if __name__ == "__main__":
     # dataset generation
