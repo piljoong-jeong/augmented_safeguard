@@ -188,7 +188,7 @@ if __name__ == "__main__":
     # read data
     dataset = dataset_manager.read_data(num_frames=1)
 
-    # generate point cloud
+    # generate local point cloud
     pcd_local = dataset_manager.pointcloud_from_rgbd(
         dataset["colors"][0],
         dataset["depths"][0],
@@ -196,4 +196,22 @@ if __name__ == "__main__":
     )
 
     # DEBUG: visualize
-    o3d.visualization.draw_geometries([pcd_local])
+    # o3d.visualization.draw_geometries([pcd_local]) # OK
+
+    # generate global point cloud
+    tf = np.loadtxt(dataset["poses"][0])
+    
+    # 1. apply transformation directly
+    pcd_global1 = copy.deepcopy(pcd_local)
+    pcd_global1 = pcd_global1.transform(tf)
+
+    # 2. decompose R & t
+    R = tf[:3, :3]
+    t = tf[:3, 3]
+    pcd_global2 = copy.deepcopy(pcd_local)
+    pcd_global2.points = o3d.utility.Vector3dVector((R @ np.asarray(pcd_global2.points).T).T + np.tile(t.reshape((1, 3)), (np.asarray(pcd_global2.points).shape[0], 1)))
+
+    # NOTE: o3d.geometry.PointCloud.transform() equivalents to affine transformation
+    assert (np.asarray(pcd_global1.points) == np.asarray(pcd_global2.points)).all()
+
+    o3d.visualization.draw_geometries([pcd_local, pcd_global1])
