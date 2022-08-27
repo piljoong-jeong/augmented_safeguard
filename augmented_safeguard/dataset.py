@@ -126,23 +126,32 @@ class DatasetManager():
                     cx=data["model"][2], 
                     cy=data["model"][3]
                 )
+        
+        elif self.type_dataset == DatasetType.ICCV2017:
+            intrinsics_train = o3d.camera.PinholeCameraIntrinsic(o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault)
+            intrinsics_test = o3d.camera.PinholeCameraIntrinsic(o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault)
+
 
         return (intrinsics_train, intrinsics_test)
 
 
-def pointcloud_from_rgbd(dir_color, dir_depth):
+    def pointcloud_from_rgbd(self, dir_color: str, dir_depth: str, intrinsics: o3d.camera.PinholeCameraIntrinsic):
+        """
+        ### pointcloud_from_rgbd
 
-    color = o3d.io.read_image(dir_color)
-    depth = o3d.io.read_image(dir_depth)
+        generates local point cloud using color, depth and intrinsics
+        """
 
-    rgbd = o3d.geometry.PointCloud.create_from_color_and_depth(
-        color, depth, 
-    )
+        color = o3d.io.read_image(dir_color)
+        depth = o3d.io.read_image(dir_depth)
 
-    pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd, o3d.camera.PinholeCameraIntrinsics(o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault))
+        rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(
+            color, depth, 
+            convert_rgb_to_intensity=False
+        )
+        pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd, intrinsics)
 
-
-    return pcd
+        return pcd
 
 
 def add_noise_to_depth(o3d_depth: o3d.geometry.Image, sigma: float):
@@ -180,7 +189,11 @@ if __name__ == "__main__":
     dataset = dataset_manager.read_data(num_frames=1)
 
     # generate point cloud
+    pcd_local = dataset_manager.pointcloud_from_rgbd(
+        dataset["colors"][0],
+        dataset["depths"][0],
+        intrinsics 
+    )
 
-
-
-
+    # DEBUG: visualize
+    o3d.visualization.draw_geometries([pcd_local])
