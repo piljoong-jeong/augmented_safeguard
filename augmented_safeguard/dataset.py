@@ -1,10 +1,12 @@
 import copy
 import os
 import sys
+
 from enum import Enum, auto
 
 import numpy as np
 import open3d as o3d
+import yaml
 
 # read image
 # point cloud => src
@@ -52,40 +54,33 @@ class DatasetManager():
 
         return
 
-
-
-
     def read_data(self, 
         /, 
         is_NeuralRouting_normalized: bool = True,  
         num_frames: int = -1):
+        """
+        ### read_data
 
+        reads total `num_frames` images
+        """
 
         mask_color = "color.jpg"
         mask_depth = "rendered.depth.png"
         mask_pose = "pose.txt" if not is_NeuralRouting_normalized else "pose.rnd.txt"
 
-        
-        list_colors = [
-            os.path.join(self.dir_train_dataset, filename)
-            for filename in os.listdir(self.dir_train_dataset)
-            if mask_color in filename
-        ]
-        # print("\n".join(list_colors[:num_frames]))
-        list_depths = [
-            os.path.join(self.dir_train_dataset, filename)
-            for filename in os.listdir(self.dir_train_dataset)
-            if mask_depth in filename
-        ]
-        # print("\n".join(list_depths[:num_frames]))
-        list_poses = [
-            os.path.join(self.dir_train_dataset, filename)
-            for filename in os.listdir(self.dir_train_dataset)
-            if mask_pose in filename
-        ]
-        # print("\n".join(list_poses[:num_frames]))
+        # read
+        def __read_with_mask(mask):
+            return [
+                os.path.join(self.dir_train_dataset, filename)
+                for filename in os.listdir(self.dir_train_dataset)
+                if mask in filename
+            ]
+        list_colors = __read_with_mask(mask_color)
+        list_depths = __read_with_mask(mask_depth)
+        list_poses = __read_with_mask(mask_pose)
 
-        
+        if len(list_colors) < num_frames or num_frames == -1:
+            num_frames = len(list_colors)
 
         dict_dataset = {
             "colors": list_colors[:num_frames], 
@@ -98,6 +93,41 @@ class DatasetManager():
         # returns dict
         return dict_dataset
     
+    def read_intrinsics(self):
+        """
+        ### read_intrinsics
+
+        returns intrinsics for train & test dataset
+        """
+
+        if self.type_dataset == DatasetType.RIO10:
+            filename_intrinsic = "camera.yaml"
+
+            # intrinsics for train dataset
+            with open(os.path.join(self.dir_train_dataset, filename_intrinsic), "r") as f:
+                data = yaml.load(f, yaml.FullLoader)["camera_intrinsics"]
+                intrinsics_train = o3d.camera.PinholeCameraIntrinsic(
+                    width=data["width"], 
+                    height=data["height"], 
+                    fx=data["model"][0], 
+                    fy=data["model"][1], 
+                    cx=data["model"][2], 
+                    cy=data["model"][3]
+                )
+
+            # intrinsics for test dataset
+            with open(os.path.join(self.dir_test_dataset, filename_intrinsic), "r") as f:
+                data = yaml.load(f, yaml.FullLoader)["camera_intrinsics"]
+                intrinsics_test = o3d.camera.PinholeCameraIntrinsic(
+                    width=data["width"], 
+                    height=data["height"], 
+                    fx=data["model"][0], 
+                    fy=data["model"][1], 
+                    cx=data["model"][2], 
+                    cy=data["model"][3]
+                )
+
+        return (intrinsics_train, intrinsics_test)
 
 
 def pointcloud_from_rgbd(dir_color, dir_depth):
@@ -142,8 +172,15 @@ if __name__ == "__main__":
 
     dataset_manager = DatasetManager(DatasetType.RIO10, dir_dataset,  name_train_sequence, name_test_sequence)
 
+    # read camera intrinsics
+    intrinsics, _ = dataset_manager.read_intrinsics()
+    print(intrinsics)
+
     # read data
     dataset = dataset_manager.read_data(num_frames=1)
 
-    
+    # generate point cloud
+
+
+
 
