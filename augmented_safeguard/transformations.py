@@ -1,5 +1,7 @@
-import numpy as np
 
+
+import numpy as np
+from scipy.spatial.transform import Rotation
 
 # https://gist.github.com/oshea00/dfb7d657feca009bf4d095d4cb8ea4be
 def rigid_transform_3D(A, B, scale):
@@ -57,6 +59,10 @@ def pose_from_rot_and_trans(R: np.ndarray, t: np.ndarray):
     pose[:3, :3] = R
     pose[:3, 3] = t
     return pose
+
+
+def euler_from_rotmat(R:np.ndarray):
+    return Rotation.from_matrix(R).as_euler("zyx", degrees=True)
 
 if __name__ == "__main__":
     # dataset generation

@@ -229,6 +229,9 @@ if __name__ == "__main__":
     Q = asfgd.utility.blockshaped(np.asarray(pcd_global.points)[:n_kabsch], 3, 3)
 
     list_angular_errors = []
+    list_euler_angles_x = []
+    list_euler_angles_y = []
+    list_euler_angles_z = []
 
     for idx, (P_, Q_) in enumerate(zip(P, Q)):
         # print(f"P = \n{P_}")
@@ -250,21 +253,44 @@ if __name__ == "__main__":
         err_rot = asfgd.metric.error_angular(R, R_)
         # print(f"[DEBUG] err_rot = \n{err_rot}")
 
+        euler_normalized = (euler:=asfgd.transformations.euler_from_rotmat(R_)) / np.linalg.norm(euler)
+        # print(euler_normalized)
+        
         list_angular_errors.append(err_rot)
+        list_euler_angles_x.append(euler_normalized[0])
+        list_euler_angles_y.append(euler_normalized[1])
+        list_euler_angles_z.append(euler_normalized[2])
 
-        # if idx == 1000:
-        #     break
+        
+
+        if idx == 1000:
+            break
 
     import pandas as pd
     df = pd.DataFrame()
     df["frame"] = [i for i in range(len(list_angular_errors))]
     df["angular error"] = list_angular_errors
+    
 
     import seaborn as sns
     import matplotlib.pyplot as plt
-
     sns.set_theme()
-    sns.set(rc = {'figure.figsize':(20,8)})
-    sns.lineplot(data=df, x="frame", y="angular error")
-    plt.savefig("angular_error_all.png")
+
+    # angular error plot
+    # sns.set(rc = {'figure.figsize':(20,8)})
+    # sns.lineplot(data=df, x="frame", y="angular error")
+    # plt.savefig("angular_error_all.png")
+    # plt.show()
+
+    # sphere plot
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection = '3d')
+    df["euler_x"] = list_euler_angles_x
+    df["euler_y"] = list_euler_angles_y
+    df["euler_z"] = list_euler_angles_z
+    x=df["euler_x"]
+    y=df["euler_y"]
+    z=df["euler_z"]
+    ax.scatter(x, y, z)
     plt.show()
+
