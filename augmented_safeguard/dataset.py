@@ -8,6 +8,14 @@ import numpy as np
 import open3d as o3d
 import yaml
 
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+sns.set_theme()
+sns.set(rc = {'figure.figsize':(20,8)})
+
+
 sys.path.append(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 import augmented_safeguard as asfgd
 
@@ -276,17 +284,12 @@ if __name__ == "__main__":
         # if idx == 1000:
         #     break
 
-    import pandas as pd
     df = pd.DataFrame()
     df["correspondence index"] = [i for i in range(len(list_angular_errors))]
     df["angular error"] = list_angular_errors
     df["angular error (cum)"] = list_angular_errors_cum
+    df.to_csv("test.csv")
     
-
-    import seaborn as sns
-    import matplotlib.pyplot as plt
-    sns.set_theme()
-    sns.set(rc = {'figure.figsize':(20,8)})
 
     # angular error plot
     fig, ax = plt.subplots()
