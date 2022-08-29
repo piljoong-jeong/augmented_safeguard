@@ -277,20 +277,20 @@ if __name__ == "__main__":
     sns.set_theme()
 
     # angular error plot
-    # sns.set(rc = {'figure.figsize':(20,8)})
-    # sns.lineplot(data=df, x="frame", y="angular error")
-    # plt.savefig("angular_error_all.png")
-    # plt.show()
+    sns.set(rc = {'figure.figsize':(20,8)})
+    sns.scatterplot(data=df, x="frame", y="angular error")
+    plt.savefig("angular_error_all.png")
+    plt.show()
 
     # sphere plot
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection = '3d')
-    df["euler_x"] = list_euler_angles_x
-    df["euler_y"] = list_euler_angles_y
-    df["euler_z"] = list_euler_angles_z
-    x=df["euler_x"]
-    y=df["euler_y"]
-    z=df["euler_z"]
-    ax.scatter(x, y, z)
-    plt.show()
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection = '3d')
+    # df["euler_x"] = list_euler_angles_x
+    # df["euler_y"] = list_euler_angles_y
+    # df["euler_z"] = list_euler_angles_z
+    # x=df["euler_x"]
+    # y=df["euler_y"]
+    # z=df["euler_z"]
+    # ax.scatter(x, y, z)
+    # plt.show()
 
