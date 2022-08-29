@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 
 def blockshaped(arr, nrows, ncols):
@@ -14,3 +16,20 @@ def blockshaped(arr, nrows, ncols):
     return (arr.reshape(h//nrows, nrows, -1, ncols)
                .swapaxes(1,2)
                .reshape(-1, nrows, ncols))
+
+def uniform_sample(arr, n_stripes):
+    """
+    uniform sampling
+    
+    """
+
+
+    result = copy.deepcopy(arr)
+    indices = [
+        i + n_stripes*j 
+        for i in range(n_stripes) 
+        for j in range(3)
+    ]
+
+    return result[indices]
+    

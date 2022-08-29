@@ -221,12 +221,18 @@ if __name__ == "__main__":
     # o3d.visualization.draw_geometries([pcd_local, pcd_global]) # OK
 
 
-    n_kabsch = np.asarray(pcd_local.points).shape[0] - np.asarray(pcd_local.points).shape[0]%3
+    n_kabsch = int(np.asarray(pcd_local.points).shape[0] - np.asarray(pcd_local.points).shape[0]%3)
     print(f"{n_kabsch=}")
+    
+    # ordering
+    P = np.asarray(pcd_local.points)
+    Q = np.asarray(pcd_global.points)
+    P = asfgd.utility.uniform_sample(P, n_kabsch//3)
+    Q = asfgd.utility.uniform_sample(Q, n_kabsch//3)
 
     # TODO: run Kabsch for each points
-    P = asfgd.utility.blockshaped(np.asarray(pcd_local.points)[:n_kabsch], 3, 3)
-    Q = asfgd.utility.blockshaped(np.asarray(pcd_global.points)[:n_kabsch], 3, 3)
+    P = asfgd.utility.blockshaped(P[:n_kabsch], 3, 3)
+    Q = asfgd.utility.blockshaped(Q[:n_kabsch], 3, 3)
 
     list_angular_errors = []
     list_euler_angles_x = []
@@ -268,7 +274,7 @@ if __name__ == "__main__":
 
     import pandas as pd
     df = pd.DataFrame()
-    df["frame"] = [i for i in range(len(list_angular_errors))]
+    df["correspondence index"] = [i for i in range(len(list_angular_errors))]
     df["angular error"] = list_angular_errors
     
 
@@ -278,25 +284,42 @@ if __name__ == "__main__":
     sns.set(rc = {'figure.figsize':(20,8)})
 
     # angular error plot
-    # sns.scatterplot(data=df, x="frame", y="angular error")
-    # plt.savefig("angular_error_all.png")
-    # plt.show()
+    sns.scatterplot(data=df, x="correspondence index", y="angular error")
+    plt.savefig("uniform_angular_error_all.png")
+    plt.show()
+    plt.clf()
 
     # sphere plot
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111, projection = '3d')
-    # df["euler_x"] = list_euler_angles_x
-    # df["euler_y"] = list_euler_angles_y
-    # df["euler_z"] = list_euler_angles_z
-    # x=df["euler_x"]
-    # y=df["euler_y"]
-    # z=df["euler_z"]
-    # ax.scatter(x, y, z)
-    # plt.show()
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection = '3d')
+    df["euler_x"] = list_euler_angles_x
+    df["euler_y"] = list_euler_angles_y
+    df["euler_z"] = list_euler_angles_z
+    x=df["euler_x"]
+    y=df["euler_y"]
+    z=df["euler_z"]
+    ax.scatter(x, y, z)
+    plt.savefig("uniform_sphere_euler_angle_all.png")
+    plt.show()
+    plt.clf()
 
     # histogram
     sns.histplot(data=df, x="angular error")
-    plt.savefig("angular_error_hist.png")
+    plt.savefig("uniform_angular_error_hist.png")
+    plt.clf()
+
+    # KDE
+    fig, ax = plt.subplots()
+    kde = sns.kdeplot(data=df, x="angular error", ax=ax)
+    lines = kde.get_lines()
+    for line in lines:
+        x, y = line.get_data()
+        print(x[np.argmax(y)])
+        ax.axvline(x[np.argmax(y)], ls="--", color="black")
+    plt.savefig("uniform_angular_error_kde.png")
     plt.show()
+    plt.clf()
+
+    
 
 
