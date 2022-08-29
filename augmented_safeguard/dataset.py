@@ -263,8 +263,8 @@ if __name__ == "__main__":
 
         
 
-        if idx == 1000:
-            break
+        # if idx == 1000:
+        #     break
 
     import pandas as pd
     df = pd.DataFrame()
@@ -275,12 +275,12 @@ if __name__ == "__main__":
     import seaborn as sns
     import matplotlib.pyplot as plt
     sns.set_theme()
+    sns.set(rc = {'figure.figsize':(20,8)})
 
     # angular error plot
-    sns.set(rc = {'figure.figsize':(20,8)})
-    sns.scatterplot(data=df, x="frame", y="angular error")
-    plt.savefig("angular_error_all.png")
-    plt.show()
+    # sns.scatterplot(data=df, x="frame", y="angular error")
+    # plt.savefig("angular_error_all.png")
+    # plt.show()
 
     # sphere plot
     # fig = plt.figure()
@@ -293,4 +293,10 @@ if __name__ == "__main__":
     # z=df["euler_z"]
     # ax.scatter(x, y, z)
     # plt.show()
+
+    # histogram
+    sns.histplot(data=df, x="angular error")
+    plt.savefig("angular_error_hist.png")
+    plt.show()
+
 
