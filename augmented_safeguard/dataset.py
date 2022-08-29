@@ -239,6 +239,9 @@ if __name__ == "__main__":
     list_euler_angles_y = []
     list_euler_angles_z = []
 
+    list_angular_errors_cum = []
+
+    sum_angular_errors = 0.0
     for idx, (P_, Q_) in enumerate(zip(P, Q)):
         # print(f"P = \n{P_}")
         
@@ -267,7 +270,8 @@ if __name__ == "__main__":
         list_euler_angles_y.append(euler_normalized[1])
         list_euler_angles_z.append(euler_normalized[2])
 
-        
+        sum_angular_errors += err_rot
+        list_angular_errors_cum.append(sum_angular_errors / (idx+1))
 
         # if idx == 1000:
         #     break
@@ -276,6 +280,7 @@ if __name__ == "__main__":
     df = pd.DataFrame()
     df["correspondence index"] = [i for i in range(len(list_angular_errors))]
     df["angular error"] = list_angular_errors
+    df["angular error (cum)"] = list_angular_errors_cum
     
 
     import seaborn as sns
@@ -284,10 +289,13 @@ if __name__ == "__main__":
     sns.set(rc = {'figure.figsize':(20,8)})
 
     # angular error plot
-    sns.scatterplot(data=df, x="correspondence index", y="angular error")
-    plt.savefig("uniform_angular_error_all.png")
+    fig, ax = plt.subplots()
+    # sns.scatterplot(data=df, x="correspondence index", y="angular error", ax=ax)
+    sns.lineplot(data=df, x="correspondence index", y="angular error (cum)", ax=ax)
+    plt.savefig("uniform_angular_error_all_cum.png")
     plt.show()
     plt.clf()
+    exit()
 
     # sphere plot
     fig = plt.figure()
