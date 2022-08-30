@@ -3,6 +3,14 @@
 import numpy as np
 from scipy.spatial.transform import Rotation
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+
+list_sx = []
+list_sy = []
+list_sz = []
+
 # https://gist.github.com/oshea00/dfb7d657feca009bf4d095d4cb8ea4be
 def rigid_transform_3D(A, B, scale):
 
@@ -29,6 +37,15 @@ def rigid_transform_3D(A, B, scale):
     """
 
     U, S, Vt = np.linalg.svd(H) # NOTE: Kabsch; H = USV^T
+
+    # d = 1 if (det:=np.linalg.det(Vt.T @ U.T)) > 0 else -1
+    # print(det)
+    # print(d)
+    # print(S)
+    # exit()
+    list_sx.append(S[0])
+    list_sy.append(S[1])
+    list_sz.append(S[2])
     
     R = Vt.T * U.T # NOTE: Kabsch; R = V \cdot U^T
 
@@ -48,6 +65,22 @@ def rigid_transform_3D(A, B, scale):
         t = -R.dot(Bm.T) + Am.T
 
     return c, R, t
+
+def debug_plot_singular_values():
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection = '3d')
+    df = pd.DataFrame()
+    df["correspondence index"] = [i for i in range(len(list_sx))]
+    df["singular_x"] = list_sx
+    df["singular_y"] = list_sy
+    df["singular_z"] = list_sz
+    x=df["singular_x"]
+    y=df["singular_y"]
+    z=df["singular_z"]
+    ax.scatter(x, y, z)
+    plt.savefig("uniform_sphere_singular.png")
+    plt.show()
+    plt.clf()
 
 def pose_from_rot_and_trans(R: np.ndarray, t: np.ndarray):
 

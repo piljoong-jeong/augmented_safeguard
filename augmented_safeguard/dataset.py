@@ -281,8 +281,24 @@ if __name__ == "__main__":
         sum_angular_errors += err_rot
         list_angular_errors_cum.append(sum_angular_errors / (idx+1))
 
-        # if idx == 1000:
-        #     break
+        # NOTE: reproject
+        # transform local points with tf_kabsch
+        # print(np.asarray(intrinsics.intrinsic_matrix))
+        # exit()
+        # print(np.asarray(pcd_local.transform(tf_kabsch).points))
+        # print(np.asarray(pcd_local.transform(tf_kabsch).points).shape)
+        # exit()
+        # pcd_reproj = np.asarray(intrinsics.intrinsic_matrix) @ np.asarray(pcd_local.transform(tf_kabsch).points)
+        # for each global point, apply intrinsic matrix
+        # pcd_reproj = np.asarray(pcd_local.transform(tf_kabsch).points) @ np.asarray(intrinsics.intrinsic_matrix)
+        # print(pcd_reproj)
+        # exit()
+
+        if idx == 1000:
+            break
+
+    # asfgd.transformations.debug_plot_singular_values()
+    # exit()
 
     df = pd.DataFrame()
     df["correspondence index"] = [i for i in range(len(list_angular_errors))]
