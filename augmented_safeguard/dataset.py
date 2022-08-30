@@ -197,7 +197,7 @@ if __name__ == "__main__":
     print(intrinsics)
 
     # NOTE: read data
-    dataset = dataset_manager.read_data(num_frames=1)
+    dataset = dataset_manager.read_data(num_frames=-1)
 
     # NOTE: generate local point cloud
     pcd_local = dataset_manager.pointcloud_from_rgbd(
@@ -210,7 +210,8 @@ if __name__ == "__main__":
     # o3d.visualization.draw_geometries([pcd_local]) # OK
 
     # NOTE: generate global point cloud
-    tf = np.loadtxt(dataset["poses"][0])
+    IDX_GT_FRAME = 300
+    tf = np.loadtxt(dataset["poses"][IDX_GT_FRAME])
     
     # NOTE: 1. apply transformation directly
     pcd_global = copy.deepcopy(pcd_local)
@@ -294,8 +295,8 @@ if __name__ == "__main__":
         # print(pcd_reproj)
         # exit()
 
-        if idx == 1000:
-            break
+        # if idx == 1000:
+        #     break
 
     # asfgd.transformations.debug_plot_singular_values()
     # exit()
@@ -311,6 +312,8 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
     # sns.scatterplot(data=df, x="correspondence index", y="angular error", ax=ax)
     sns.lineplot(data=df, x="correspondence index", y="angular error (cum)", ax=ax)
+    ax.set_ylim(0, max(list_angular_errors_cum) * 2)
+    print(f"[DEBUG] maximum avg. angular error = {max(list_angular_errors_cum)}")
     plt.savefig("uniform_angular_error_all_cum.png")
     plt.show()
     plt.clf()
