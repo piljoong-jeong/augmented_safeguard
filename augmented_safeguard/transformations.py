@@ -10,6 +10,7 @@ import pandas as pd
 list_sx = []
 list_sy = []
 list_sz = []
+list_residuals = []
 
 # https://gist.github.com/oshea00/dfb7d657feca009bf4d095d4cb8ea4be
 def rigid_transform_3D(A, B, scale):
@@ -49,12 +50,23 @@ def rigid_transform_3D(A, B, scale):
     
     R = Vt.T * U.T # NOTE: Kabsch; R = V \cdot U^T
 
+    sign = 1
     # special reflection case
     if np.linalg.det(R) < 0:
         # print("[DEBUG] Reflection detected")
         Vt[2, :] *= -1
+        sign = -1
         R = Vt.T * U.T
     
+    # NOTE: residual
+    residual = 0
+    for i in range(3):
+        residual += np.linalg.norm(Ac[i, :]) # 2-norm
+        residual += np.linalg.norm(Bc[i, :]) # 2-norm
+    residual /= 3
+    residual -= (2/3) * (S[0] + S[1] + sign * S[2])
+    list_residuals.append(residual)
+
     if scale:
         Avar = np.var(A, axis=0).sum()
         c = 1 / (1 / Avar * np.sum(S)) # scale singular value
@@ -79,6 +91,19 @@ def debug_plot_singular_values():
     z=df["singular_z"]
     ax.scatter(x, y, z)
     plt.savefig("uniform_sphere_singular.png")
+    plt.show()
+    plt.clf()
+
+def debug_plot_residuals():
+    df = pd.DataFrame()
+    df["correspondence index"] = [i for i in range(len(list_residuals))]
+    df["residuals"] = list_residuals
+    
+    fig, ax = plt.subplots()
+    # sns.lineplot(data=df, x="correspondence index", y="residuals", ax=ax)
+    sns.histplot(data=df, x="residuals")
+
+    plt.savefig("residuals_hist.png")
     plt.show()
     plt.clf()
 

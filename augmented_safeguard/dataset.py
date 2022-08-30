@@ -210,7 +210,7 @@ if __name__ == "__main__":
     # o3d.visualization.draw_geometries([pcd_local]) # OK
 
     # NOTE: generate global point cloud
-    IDX_GT_FRAME = 300
+    IDX_GT_FRAME = 0
     tf = np.loadtxt(dataset["poses"][IDX_GT_FRAME])
     
     # NOTE: 1. apply transformation directly
@@ -299,7 +299,8 @@ if __name__ == "__main__":
         #     break
 
     # asfgd.transformations.debug_plot_singular_values()
-    # exit()
+    asfgd.transformations.debug_plot_residuals()
+    exit()
 
     df = pd.DataFrame()
     df["correspondence index"] = [i for i in range(len(list_angular_errors))]
@@ -313,7 +314,7 @@ if __name__ == "__main__":
     # sns.scatterplot(data=df, x="correspondence index", y="angular error", ax=ax)
     sns.lineplot(data=df, x="correspondence index", y="angular error (cum)", ax=ax)
     ax.set_ylim(0, max(list_angular_errors_cum) * 2)
-    print(f"[DEBUG] maximum avg. angular error = {max(list_angular_errors_cum)}")
+    print(f"[DEBUG] pose#{IDX_GT_FRAME}, maximum avg. angular error = {max(list_angular_errors_cum)}")
     plt.savefig("uniform_angular_error_all_cum.png")
     plt.show()
     plt.clf()
