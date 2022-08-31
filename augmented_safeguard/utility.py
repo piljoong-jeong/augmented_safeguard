@@ -17,7 +17,7 @@ def blockshaped(arr, nrows, ncols):
                .swapaxes(1,2)
                .reshape(-1, nrows, ncols))
 
-def uniform_sample(arr, n_stripes):
+def uniform_stride_ordering(arr, n_stripes):
     """
     uniform sampling
     
