@@ -83,6 +83,7 @@ def rigid_transform_3D(A, B, scale):
         c = 1
         t = -R.dot(Bm.T) + Am.T
 
+
     return c, R, t
 
 def debug_plot_singular_values():
