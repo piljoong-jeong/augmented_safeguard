@@ -258,8 +258,8 @@ if __name__ == "__main__":
         P_ = np.asmatrix(P_)
         Q_ = np.asmatrix(Q_)
 
-        _, R_, t_ = asfgd.transformations.rigid_transform_3D(P_, Q_, False)
-        #_, R_, t_ = asfgd.transformation_quaternion.rigid_transform_3D(P_, Q_, False)
+        #_, R_, t_ = asfgd.transformations.rigid_transform_3D(P_, Q_, False)
+        _, R_, t_ = asfgd.transformation_quaternion.rigid_transform_3D(P_, Q_, False)
 
         P_kabsch = (R_ @ Q_.T) + np.tile(t_, (1, Q_.shape[0]))
         P_kabsch = P_kabsch.T
