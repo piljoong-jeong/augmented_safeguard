@@ -12,6 +12,9 @@ list_sy = []
 list_sz = []
 list_residuals = []
 
+# NOTE: D = sqrt(tr( (X-RX) (X-RX)^T ))
+list_distances = []
+
 # https://gist.github.com/oshea00/dfb7d657feca009bf4d095d4cb8ea4be
 def rigid_transform_3D(A, B, scale):
 
@@ -67,6 +70,10 @@ def rigid_transform_3D(A, B, scale):
     residual -= (2/3) * (S[0] + S[1] + sign * S[2])
     list_residuals.append(residual)
 
+    # NOTE: distance
+    D = np.sqrt( np.trace( (Ac-R@Bc) @ (Ac-R@Bc).T ) )
+    list_distances.append(D)
+
     if scale:
         Avar = np.var(A, axis=0).sum()
         c = 1 / (1 / Avar * np.sum(S)) # scale singular value
@@ -106,6 +113,20 @@ def debug_plot_residuals():
     plt.savefig("residuals_hist.png")
     plt.show()
     plt.clf()
+
+def debug_plot_distances():
+    df = pd.DataFrame()
+    df["correspondence index"] = [i for i in range(len(list_distances))]
+    df["distances"] = list_distances
+    
+    fig, ax = plt.subplots()
+    # sns.lineplot(data=df, x="correspondence index", y="residuals", ax=ax)
+    sns.histplot(data=df, x="distances")
+
+    plt.savefig("distances_hist.png")
+    plt.show()
+    plt.clf()
+
 
 def pose_from_rot_and_trans(R: np.ndarray, t: np.ndarray):
 

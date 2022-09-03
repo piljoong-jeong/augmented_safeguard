@@ -240,8 +240,8 @@ if __name__ == "__main__":
     Q = asfgd.utility.uniform_stride_ordering(Q, n_kabsch//3)
 
     # TODO: run Kabsch for each points
-    # P = asfgd.utility.blockshaped(P[:n_kabsch], 3, 3)
-    # Q = asfgd.utility.blockshaped(Q[:n_kabsch], 3, 3)
+    P = asfgd.utility.blockshaped(P[:n_kabsch], 3, 3)
+    Q = asfgd.utility.blockshaped(Q[:n_kabsch], 3, 3)
 
     list_angular_errors = []
     list_euler_angles_x = []
@@ -254,19 +254,12 @@ if __name__ == "__main__":
     for idx, (P_, Q_) in enumerate(zip(P, Q)):
         # print(f"P = \n{P_}")
         
-        # NOTE: test - adding multiple samples
-        if idx < 3:
-            continue
-        if idx > 100000:
-            break
 
-        P_ = np.asmatrix(P[:idx])
-        Q_ = np.asmatrix(Q[:idx])
-
-        # P_ = np.asmatrix(P_)
-        # Q_ = np.asmatrix(Q_)
+        P_ = np.asmatrix(P_)
+        Q_ = np.asmatrix(Q_)
 
         _, R_, t_ = asfgd.transformations.rigid_transform_3D(P_, Q_, False)
+        #_, R_, t_ = asfgd.transformation_quaternion.rigid_transform_3D(P_, Q_, False)
 
         P_kabsch = (R_ @ Q_.T) + np.tile(t_, (1, Q_.shape[0]))
         P_kabsch = P_kabsch.T
@@ -309,12 +302,13 @@ if __name__ == "__main__":
         # print(pcd_reproj)
         # exit()
 
-        # if idx == 1000:
-        #     break
+        if idx == 1000:
+            break
 
     # asfgd.transformations.debug_plot_singular_values()
     # asfgd.transformations.debug_plot_residuals()
-    # exit()
+    asfgd.transformations.debug_plot_distances()
+    exit()
 
     df = pd.DataFrame()
     df["correspondence index"] = [i for i in range(len(list_angular_errors))]
