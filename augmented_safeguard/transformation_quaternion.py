@@ -89,11 +89,11 @@ def rigid_transform_3D(A, B, scale):
     is_solve_using_cofactor = True
     if is_solve_using_cofactor:
         cofactor = np.linalg.inv(homogeneous_system).T * np.linalg.det(homogeneous_system)
-        print(f"cofactor = \n{cofactor}")
+        # print(f"cofactor = \n{cofactor}")
         # for i in range(4):
         #     print(np.linalg.norm(cofactor[i, :]))
         q_result = cofactor[np.argmax(np.linalg.norm(cofactor, axis=1))]
-        print(q_result)
+        # print(q_result)
 
 
     
