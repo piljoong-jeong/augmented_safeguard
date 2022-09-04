@@ -250,39 +250,69 @@ if __name__ == "__main__":
 
     list_angular_errors_cum = []
 
+    list_R_kabsch = []
+    list_R_quat = []
+
     sum_angular_errors = 0.0
     for idx, (P_, Q_) in enumerate(zip(P, Q)):
-        print(f"P = \n{P_}")
+        
         
 
         P_ = np.asmatrix(P_)
         Q_ = np.asmatrix(Q_)
+        # print(f"P = \n{P_}")
+        # print(f"Q = \n{Q_}")
 
-        _, R_, t_ = asfgd.transformations.rigid_transform_3D(P_, Q_, False)
-        print(f"[DEBUG] R from Kabsch = \n{R_}")
-        _, R_, t_ = asfgd.transformation_quaternion.rigid_transform_3D(P_, Q_, False)
-        print(f"[DEBUG] R from quaternion = \n{R_}")
-        exit()
+        _, R_kabsch, t_kabsch = asfgd.transformations.rigid_transform_3D(Q_, P_, False)
+        list_R_kabsch.append(R_kabsch)
+        # _, R_kabsch, t_kabsch = asfgd.transformations.rigid_transform_3D(P_, Q_, False)
+        # print(f"[DEBUG] R from Kabsch = \n{R_kabsch}")
+        
+        
+        # print(f"tf = \n{tf}")
+        tf_kabsch = asfgd.transformations.pose_from_rot_and_trans(R_kabsch, t_kabsch.reshape(1, 3))
+        # print(f"tf_kabsch = \n{tf_kabsch}")
+        # exit()
 
-        P_kabsch = (R_ @ Q_.T) + np.tile(t_, (1, Q_.shape[0]))
-        P_kabsch = P_kabsch.T
-        print(f"P_Kabsch = \n{P_kabsch}")
+        # print(tf)
+        # print(tf_kabsch)
+        # exit()
+
+        # rotation similarity
+        if not np.allclose(np.linalg.norm(R), np.linalg.norm(R_kabsch)):
+            
+            print(f"R=\n{R}")
+            print(f"R_kabsch=\n{R_kabsch}")
+
+            assert False and "Rotation is inconsistent!"
+
+        # P consistency
+        Q_kabsch = (R_kabsch @ P_.T) + np.tile(t_kabsch, (1, P_.shape[0]))
+        Q_kabsch = Q_kabsch.T
+        diff_norm = np.linalg.norm(np.abs(P_-Q_kabsch))
+
+        # print(Q_)
+        # print(Q_kabsch)
         # exit()
 
 
-        # print(f"tf = \n{tf}")
-        tf_kabsch = asfgd.transformations.pose_from_rot_and_trans(R_, t_.reshape(1, 3))
-        # print(f"tf_kabsch = \n{tf_kabsch}")
+        if not np.allclose(Q_, Q_kabsch): 
+            assert False and "point inconsistent!"
+        
 
-        diff_norm = np.linalg.norm(P_-P_kabsch)
+        _, R_quat, t_quat = asfgd.transformation_quaternion.rigid_transform_3D(P_, Q_, False)
+        list_R_quat.append(R_quat)
 
-        assert np.allclose(np.linalg.norm(P_), np.linalg.norm(P_kabsch))
-        assert diff_norm < (eps:=1e-4)
 
-        err_rot = asfgd.metric.error_angular(R, R_)
+        # if idx == 1000:
+        #     break
+
+        # continue
+
+        err_rot = asfgd.metric.error_angular(R, R_kabsch)
         # print(f"[DEBUG] err_rot = \n{err_rot}")
 
-        euler_normalized = (euler:=asfgd.transformations.euler_from_rotmat(R_)) / np.linalg.norm(euler)
+        euler_normalized = (euler:=asfgd.transformations.euler_from_rotmat(R_kabsch)) / np.linalg.norm(euler)
         # print(euler_normalized)
         
         list_angular_errors.append(err_rot)
@@ -293,26 +323,14 @@ if __name__ == "__main__":
         sum_angular_errors += err_rot
         list_angular_errors_cum.append(sum_angular_errors / (idx+1))
 
-        # NOTE: reproject
-        # transform local points with tf_kabsch
-        # print(np.asarray(intrinsics.intrinsic_matrix))
-        # exit()
-        # print(np.asarray(pcd_local.transform(tf_kabsch).points))
-        # print(np.asarray(pcd_local.transform(tf_kabsch).points).shape)
-        # exit()
-        # pcd_reproj = np.asarray(intrinsics.intrinsic_matrix) @ np.asarray(pcd_local.transform(tf_kabsch).points)
-        # for each global point, apply intrinsic matrix
-        # pcd_reproj = np.asarray(pcd_local.transform(tf_kabsch).points) @ np.asarray(intrinsics.intrinsic_matrix)
-        # print(pcd_reproj)
-        # exit()
+        # if idx == 1000:
+        #     break
 
-        if idx == 1000:
-            break
 
     # asfgd.transformations.debug_plot_singular_values()
-    # asfgd.transformations.debug_plot_residuals()
+    asfgd.transformations.debug_plot_residuals()
     # asfgd.transformations.debug_plot_distances()
-    # exit()
+    exit()
 
     df = pd.DataFrame()
     df["correspondence index"] = [i for i in range(len(list_angular_errors))]
