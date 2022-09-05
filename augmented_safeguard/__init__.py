@@ -15,3 +15,6 @@ from . import transformation_quaternion
 
 # NOTE: 22-09-04 variance heatmap of rotation
 from . import plot
+
+# NOTE: 22-09-05 entrypoint
+from . import app

@@ -7,7 +7,7 @@ def main():
 
     
 
-    return
+    return asfgd.app.run_default()
 
 if __name__ == "__main__":
     main()

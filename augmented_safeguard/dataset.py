@@ -32,6 +32,16 @@ class DatasetType(Enum):
     RIO10 = "RIO10"
 
 class DatasetManager():
+
+    class Dataset:
+        def __init__(self, list_colors, list_depths, list_poses) -> None:
+            self.colors = list_colors
+            self.depths = list_depths
+            self.poses = list_poses
+
+        def check_dataset_consistency(self):
+            return (len(self.colors) == len(self.depths) == len(self.poses))
+
     def __init__(self, 
         type_dataset: DatasetType, 
         dir_dataset: str,
@@ -67,8 +77,7 @@ class DatasetManager():
 
     def read_data(self, 
         /, 
-        is_NeuralRouting_normalized: bool = True,  
-        num_frames: int = -1):
+        is_NeuralRouting_normalized: bool = True):
         """
         ### read_data
 
@@ -80,29 +89,30 @@ class DatasetManager():
         mask_pose = "pose.txt" if not is_NeuralRouting_normalized else "pose.rnd.txt"
 
         # read
-        def __read_with_mask(mask):
+        def __read_with_mask(mask, dir_dataset):
             return [
-                os.path.join(self.dir_train_dataset, filename)
-                for filename in os.listdir(self.dir_train_dataset)
+                os.path.join(dir_dataset, filename)
+                for filename in os.listdir(dir_dataset)
                 if mask in filename
             ]
-        list_colors = __read_with_mask(mask_color)
-        list_depths = __read_with_mask(mask_depth)
-        list_poses = __read_with_mask(mask_pose)
 
-        if len(list_colors) < num_frames or num_frames == -1:
-            num_frames = len(list_colors)
+        dataset_train = DatasetManager.Dataset(
+            __read_with_mask(mask_color, self.dir_train_dataset),
+            __read_with_mask(mask_depth, self.dir_train_dataset),
+            __read_with_mask(mask_pose, self.dir_train_dataset)
+        )
+        dataset_test = DatasetManager.Dataset(
+            __read_with_mask(mask_color, self.dir_test_dataset),
+            __read_with_mask(mask_depth, self.dir_test_dataset),
+            __read_with_mask(mask_pose, self.dir_test_dataset)
+        )
+        assert dataset_train.check_dataset_consistency() and dataset_test.check_dataset_consistency()
 
-        dict_dataset = {
-            "colors": list_colors[:num_frames], 
-            "depths": list_depths[:num_frames], 
-            "poses": list_poses[:num_frames], 
-        }
-
-        print(f"[DEBUG] total {num_frames} dataset(s) read! access with keys: {dict_dataset.keys()}")
+        print(f"[DEBUG] train: total {len(dataset_train.colors)} dataset(s) read!")
+        print(f"[DEBUG] test : total {len(dataset_test.colors)} dataset(s) read!")
 
         # returns dict
-        return dict_dataset
+        return dataset_train, 
     
     def read_intrinsics(self):
         """
@@ -210,7 +220,7 @@ if __name__ == "__main__":
     # o3d.visualization.draw_geometries([pcd_local]) # OK
 
     # NOTE: generate global point cloud
-    IDX_GT_FRAME = 0
+    IDX_GT_FRAME = 1000
     tf = np.loadtxt(dataset["poses"][IDX_GT_FRAME])
     
     # NOTE: 1. apply transformation directly
@@ -296,7 +306,10 @@ if __name__ == "__main__":
         # exit()
 
 
-        if not np.allclose(Q_, Q_kabsch): 
+        if not np.allclose(np.linalg.norm(Q_), np.linalg.norm(Q_kabsch)): 
+            
+            print(Q_)
+            print(Q_kabsch)
             assert False and "point inconsistent!"
         
 
@@ -323,14 +336,14 @@ if __name__ == "__main__":
         sum_angular_errors += err_rot
         list_angular_errors_cum.append(sum_angular_errors / (idx+1))
 
-        # if idx == 1000:
-        #     break
+        if idx == 1000:
+            break
 
 
     # asfgd.transformations.debug_plot_singular_values()
-    asfgd.transformations.debug_plot_residuals()
-    # asfgd.transformations.debug_plot_distances()
-    exit()
+    # asfgd.transformations.debug_plot_residuals() # FIXME: correct?
+    # asfgd.transformations.debug_plot_distances() # FIXME: correct?
+    # exit()
 
     df = pd.DataFrame()
     df["correspondence index"] = [i for i in range(len(list_angular_errors))]
@@ -341,8 +354,8 @@ if __name__ == "__main__":
 
     # angular error plot
     fig, ax = plt.subplots()
-    # sns.scatterplot(data=df, x="correspondence index", y="angular error", ax=ax)
-    sns.lineplot(data=df, x="correspondence index", y="angular error (cum)", ax=ax)
+    sns.scatterplot(data=df, x="correspondence index", y="angular error", ax=ax)
+    # sns.lineplot(data=df, x="correspondence index", y="angular error (cum)", ax=ax)
     ax.set_ylim(0, max(list_angular_errors_cum) * 2)
     print(f"[DEBUG] pose#{IDX_GT_FRAME}, maximum avg. angular error = {max(list_angular_errors_cum)}")
     plt.savefig("uniform_angular_error_all_cum.png")
