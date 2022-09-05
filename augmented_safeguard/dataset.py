@@ -111,8 +111,7 @@ class DatasetManager():
         print(f"[DEBUG] train: total {len(dataset_train.colors)} dataset(s) read!")
         print(f"[DEBUG] test : total {len(dataset_test.colors)} dataset(s) read!")
 
-        # returns dict
-        return dataset_train, 
+        return dataset_train, dataset_test
     
     def read_intrinsics(self):
         """
@@ -173,6 +172,8 @@ class DatasetManager():
         pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd, intrinsics)
 
         return pcd
+
+    
 
 
 def add_noise_to_depth(o3d_depth: o3d.geometry.Image, sigma: float):
