@@ -76,7 +76,7 @@ class RecursiveLeastSquares():
         return self.x
 
 
-if __name__ == "__main__":
+def test_RLS():
 
     def test_2by1():
         A = np.array([[1, 0], [1, 1], [1, 2]])
@@ -94,3 +94,15 @@ if __name__ == "__main__":
         print(f"{x1=}")
 
     test_2by1()
+
+    return
+
+
+def main():
+
+
+    return
+
+if __name__ == "__main__":
+    main()
+    
