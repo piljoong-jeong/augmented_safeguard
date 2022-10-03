@@ -116,7 +116,7 @@ def run_incremental_SVD():
     Bm = np.tile(np.mean(B, axis=0), (B.shape[0], 1))
     Bc = B - Bm
 
-    M = np.matmul( np.transpose(Ac), Bc) # H = Q^T * P
+    M = np.matmul( np.transpose(Ac), Bc) # H = P^T * Q
     print(f"[DEBUG] M=Bc*Ac = \n{M}")
 
     U, S, Vt = np.linalg.svd(M)
@@ -136,35 +136,71 @@ def run_incremental_SVD():
     print(f"----- R GT =\n{R}")
     print(f"----- R init =\n{R_init}")
 
-    exit()
+    err_rot = asfgd.metric.error_angular(R, R_init)
+    print(f"[DEBUG] {err_rot=}")
 
     # ---------- NOTE: update SVD
     
     for idx, (SRC_, DST_) in enumerate(zip(SRC, DST)):
 
-        # 
-        # print(f"[DEBUG] SRC_=\n{SRC_}")
-        # print(f"[DEBUG] DST_=\n{DST_}")
-        
+        if 0 == idx: continue
+
         # 1. normalize
-        Am = np.mean(SRC_, axis=0)
-        # print(f"[DEBUG] {Am=}")
-        # print(f"[DEBUG] mean matrix = \n{np.tile(Am, (SRC_.shape[0], 1))}")
-        Am = np.tile(Am, (SRC_.shape[0], 1))
+        Am = np.tile(np.mean(SRC_, axis=0), (SRC_.shape[0], 1))
         Ac = SRC_ - Am
         Bm = np.tile(np.mean(DST_, axis=0), (DST_.shape[0], 1))
         Bc = DST_ - Bm
 
-        M = np.transpose(Bc) * Ac # H = Q^T * P
-        print(f"[DEBUG] M=Bc*Ac = \n{M}")
+        # FIXME: 22-09-30 test with c=1 !!!
+        C = np.matmul(np.transpose(Ac), Bc) # H = P^T * Q
+        print(f"[DEBUG] C=Ac^T*Bc = \n{C}")
 
-        U, S, Vt = np.linalg.svd(M)
-        print(f"[DEBUG] U = \n{U}")
-        print(f"[DEBUG] S = \n{S}")
-        print(f"[DEBUG] Vt = \n{Vt}")
+        L = np.matmul(U.T, C)
+        H = C - np.matmul(U, L)
+        J, K = np.linalg.qr(H)
+
+        # NOTE: middle matrix
+        Q = np.zeros(shape=(A.shape[0]+SRC_.shape[0], A.shape[1]+SRC_.shape[1]), dtype = A.dtype)
+        Q[:3, :3] = np.diag(S)
+        Q[:3, 3:] = L
+        Q[3:, 3:] = K
+        np.set_printoptions(precision=4)
+        print(f"[DEBUG] Q = \n{Q}")
+        print(Q.shape)
 
 
 
+        U_, S_, Vt_ = np.linalg.svd(Q)
+        # print(f"[DEBUG] U_ = \n{U_}")
+        # print(f"[DEBUG] S_ = \n{S_}")
+        # print(f"[DEBUG] Vt_ = \n{Vt_}")
+
+        # NOTE: update U
+        UJ = np.hstack((U, J))
+        print(f"[DEBUG] UJ = \n{UJ}")
+        print(UJ.shape)
+        U__ = np.matmul(UJ, U_)
+        print(f"[DEBUG] U'' = \n{U__}")
+
+        # NOTE: update S
+        S__ = np.diag(S_)
+
+        # NOTE: update V
+        VI = np.eye(A.shape[0]+SRC_.shape[0])
+        VI[:3, :3] = Vt.T
+        V__ = np.matmul(VI, Vt_.T)
+        print(f"[DEBUG] V'' = \n{V__}")
+
+        print(f"{U__.shape=}")
+        print(f"{S__.shape=}")
+        print(f"{V__.shape=}")
+
+        U__S__Vt__ = np.matmul(np.matmul(U__, S__), V__.T)
+        print(f"[DEBUG] U''S''V''^T = \n{U__S__Vt__}")
+
+        print(f"[DEBUG] M = \n{M}")
+        print(f"[DEBUG] C = \n{C}")
+        
 
         exit()
 
