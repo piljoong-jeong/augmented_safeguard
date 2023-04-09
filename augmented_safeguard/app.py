@@ -128,7 +128,7 @@ def run_incremental_SVD():
     sign = 1
     # special reflection case
     if np.linalg.det(R_init) < 0:
-        # print("[DEBUG] Reflection detected")
+        print("[DEBUG] Reflection detected")
         Vt[2, :] *= -1
         sign = -1
         R_init =np.matmul(Vt.T , U.T)
@@ -150,6 +150,10 @@ def run_incremental_SVD():
         Ac = SRC_ - Am
         Bm = np.tile(np.mean(DST_, axis=0), (DST_.shape[0], 1))
         Bc = DST_ - Bm
+
+        # NOTE: 22-10-05 transpose
+        Ac = Ac.T
+        Bc = Bc.T
 
         # FIXME: 22-09-30 test with c=1 !!!
         C = np.matmul(np.transpose(Ac), Bc) # H = P^T * Q
@@ -197,10 +201,41 @@ def run_incremental_SVD():
 
         U__S__Vt__ = np.matmul(np.matmul(U__, S__), V__.T)
         print(f"[DEBUG] U''S''V''^T = \n{U__S__Vt__}")
-
         print(f"[DEBUG] M = \n{M}")
         print(f"[DEBUG] C = \n{C}")
+
+        R_test = np.matmul(V__, U__.T)
+        print(f"[DEBUG] R_test =\n{R_test}")
+
+        # if np.linalg.det(R_test) < 0:
+        #     print(f"[DEBUG] Reflection detected for `R_test`: {np.linalg.det(R_test)}")
+        #     V__[2, :] *= -1
+        #     sign = -1
+        #     R_incremental =np.matmul(V__, U__.T)
+        # print(f"[DEBUG] V__*U__^T =\n{R_test}")
+
         
+        # TODO: TSVD of `U__S__Vt__`
+        
+
+
+        u, s, vt= np.linalg.svd(U__S__Vt__, full_matrices=False)
+        R_incremental = np.matmul(vt[:3, :3].T, u.T) # TODO: check if correct
+        # special reflection case
+
+        if np.linalg.det(R_incremental) < 0:
+            print(f"[DEBUG] Reflection detected for `R_incremental`: {np.linalg.det(R_incremental)}")
+            vt[2, :] *= -1
+            sign = -1
+            R_incremental =np.matmul(vt[:3, :3].T, u.T)
+
+        print(f"u=\n{u}")
+        print(f"{s=}")
+        print(f"vt=\n{vt}")
+        print(f"[DEBUG] R_incremental: v*u.T = \n{R_incremental}")
+        print(f"[DEBUG] R_init =\n{R_init}")
+
+
 
         exit()
 
