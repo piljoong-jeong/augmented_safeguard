@@ -1,3 +1,8 @@
 
 *.pyc
 scripts/notebooks/sigma=0.005/*
+
+# NeRFs
+NeRF/data/*
+NeRF/configs/*
+NeRF/logs/*
