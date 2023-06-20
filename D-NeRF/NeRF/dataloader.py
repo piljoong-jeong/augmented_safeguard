@@ -9,7 +9,7 @@ import torch
 import NeRF.pose
 
 # NOTE: implement Blender data loader
-def load_blender_data(basedir, half_res=False, testskip=1):
+def load_blender_data(basedir, half_res: bool=False, testskip=1):
 
     splits = ["train", "val", "test"]
     metas = {}
@@ -74,7 +74,7 @@ def load_blender_data(basedir, half_res=False, testskip=1):
 
         imgs_half_res = np.zeros((imgs.shape[0], H, W, 4))
         for idx, image in enumerate(imgs):
-            imgs_half_res[idx] = cv2.resize(image, (W, H), interpolation=cv2.INTER_AREA)
+            imgs_half_res[idx] = cv2.resize(image, (H, W), interpolation=cv2.INTER_AREA)
         imgs = imgs_half_res
 
     return imgs, poses, render_poses, [H, W, focal_length], i_split
