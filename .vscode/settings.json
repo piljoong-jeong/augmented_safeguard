@@ -6,6 +6,7 @@
     "python.languageServer": "Pylance", 
     "python.linting.pylintArgs": [
         "--extension-pkg-whitelist=cv2", 
-        "--errors-only", 
+        "--errors-only",
+        "--generated-members=numpy.*, torch.*", 
     ]
 }
