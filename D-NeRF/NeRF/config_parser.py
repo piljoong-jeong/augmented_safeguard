@@ -1,5 +1,7 @@
+import argparse
+
 def config_parser():
-    import argparse
+    
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--expname", type=str, help="experiment name")
@@ -76,3 +78,24 @@ def config_parser():
     # ------------------------------------------
 
     return parser
+
+def load_config(parser: argparse.ArgumentParser, filename_config: str = "configs/lego.txt"):
+
+    with open(filename_config, "r") as fp:
+        lines = fp.readlines()
+        lines = [
+            line.strip()
+            for line in lines
+        ]
+
+        lines = [
+            line.split(" = ")
+            for line in lines
+            if len(line) > 0
+        ]
+
+    configs = {}
+    for line in lines:
+        configs[line[0]] = line[1]
+
+    return configs
