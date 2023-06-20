@@ -6,3 +6,9 @@ scripts/notebooks/sigma=0.005/*
 NeRF/data/*
 NeRF/configs/*
 NeRF/logs/*
+
+# D-NeRFs
+D-NeRF/data/*
+D-NeRF/configs/*
+D-NeRF/logs/*
+D-NeRF/torchsearchsorted/*
