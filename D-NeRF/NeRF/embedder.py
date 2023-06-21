@@ -5,6 +5,7 @@
 """
 
 import torch
+import torch.nn as nn
 
 class Embedder:
     def __init__(self, **kwargs) -> None:
@@ -67,3 +68,22 @@ class Embedder:
             for embed_func
             in self.embed_funcs
         ], dim=-1)
+    
+def get_embedder(L, i=0):
+
+    if L == -1:
+        return nn.Identity(), 3
+    
+    embed_kwargs = {
+        "include_input": True, 
+        "input_dims": 3, 
+        "max_freq_log2": L-1, 
+        "num_freqs": L, 
+        "log_sampling": True, 
+        "periodic_funcs": [torch.sin, torch.cos],
+    }
+
+    embedder_obj = Embedder(**embed_kwargs)
+    embedded_sample_generation_func = lambda x, eo=embedder_obj: eo.embed(x)
+
+    return embedded_sample_generation_func, embedder_obj.out_dim
