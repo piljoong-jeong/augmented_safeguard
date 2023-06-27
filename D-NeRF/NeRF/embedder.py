@@ -24,7 +24,7 @@ class Embedder:
 
         embed_funcs = []
 
-        in_dim = self.kwargs["input_dims"]
+        in_dim = self.kwargs.get("input_dims", 3)
         out_dim = 0 # NOTE: value will be accumulated
 
         if self.kwargs["include_input"]:

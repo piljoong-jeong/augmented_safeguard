@@ -1,6 +1,130 @@
+import os
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+import NeRF.embedder as embedder
+
+def create_NeRF(args):
+
+    embed_fn, input_ch = embedder.get_embedder(args.multires, args.i_embed)
+
+    input_ch_views = 0
+    embeddirs_fn = None
+    if args.use_viewdirs:
+        embeddirs_fn, input_ch_views = embedder.get_embedder(args.multires_views, args.i_embed)
+
+    output_ch = 5 if args.N_importance > 0 else 4
+
+    skips = args.skips
+
+    # TODO: parameterize
+    device="cuda"
+
+    model = NeRF(
+        D=args.netdepth, 
+        W=args.netwidth, 
+        input_ch=input_ch,
+        output_ch=output_ch, 
+        skips=skips,
+        input_ch_views=input_ch_views,
+        use_viewdirs=args.use_viewdirs,
+    ).to(device)
+    grad_vars = list(model.parameters())
+
+    model_fine = None
+    if args.N_importance > 0:
+        model_fine = NeRF(
+            D=args.netdepth_fine, 
+            W=args.netwidth_fine, 
+            input_ch=input_ch, 
+            output_ch=output_ch, 
+            skips=skips, 
+            input_ch_views=input_ch_views, 
+            use_viewdirs=args.use_viewdirs,
+        ).to(device)
+        grad_vars += list(model_fine.parameters())
+
+    # NOTE: wrapper for `run_network(...)`; as embedding functions won't change
+    network_query_fn = lambda inputs, viewdirs, network_fn: run_network(
+        inputs, viewdirs, 
+        network_fn, 
+        embed_fn=embed_fn, embeddirs_fn=embeddirs_fn, 
+        netchunk=args.netchunk
+    )
+
+    
+    # NOTE: create optimizer
+    optimizer = torch.optim.Adam(params=grad_vars, lr=args.lrate, betas=(0.9, 0.999))
+
+    start = 0
+    basedir = args.basedir
+    expname = args.expname
+
+
+    #######################
+
+    # NOTE: load checkpoints
+    if args.ft_path is not None and args.ft_path != "None":
+        ckpts = [args.ft_path]
+    else:
+        ckpts = [
+            os.path.join(basedir, expname, f)
+            for f
+            in sorted(
+                os.listdir(os.path.join(basedir, expname))
+            )
+            if "tar" in f
+        ]
+
+    print(f"[DEBUG] Found ckpts: {ckpts}")
+
+    if len(ckpts) > 0 and not args.no_reload:
+        ckpt_path = ckpts[-1] # NOTE: the latest checkpoint
+        print(f"[DEBUG] Reloading from {ckpt_path}")
+        ckpt = torch.load(ckpt_path)
+    
+        start = ckpt["global_step"] # NOTE: update starting step
+        optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+
+        # NOTE: load model
+        model.load_state_dict(ckpt["network_fn_state_dict"])
+        if model_fine is not None:
+            model_fine.load_state_dict(ckpt["network_fine_state_dict"])
+
+    #######################
+
+    render_kwargs_train = {
+        "network_query_fn": network_query_fn, 
+        "perturb": args.perturb, 
+        "N_importance": args.N_importance, # NOTE: amount of sampling positions from PDF generated from coarse NeRF, generally 128
+        "network_fine": model_fine, 
+        "N_samples": args.N_samples, # NOTE: amount of sampling positions uniformly in order to estimate PDF in coarse NeRF, generally 64
+        "network_fn": model, 
+        "use_viewdirs": args.use_viewdirs, 
+        "white_bkgd": args.white_bkgd, 
+        "raw_noise_std": args.raw_noise_std, # NOTE: prevent overfitting when training
+    }
+
+    # NOTE: NDC is effective only for LLFF-style forward facing data
+    if args.dataset_type != "llff" or args.no_ndc:
+        print(f"[DEBUG] No NDC!")
+
+        render_kwargs_train["ndc"] = False
+        render_kwargs_train["lindisp"] = args.lindisp
+
+    render_kwargs_test = {
+        k: render_kwargs_train[k]
+        for k in render_kwargs_train
+    }
+    render_kwargs_test["perturb"] = False
+    render_kwargs_test["raw_noise_std"] = 0.
+
+    # NOTE: try patch from https://github.com/pytorch/pytorch/issues/80809#issuecomment-1173481031
+    optimizer.param_groups[0]["capturable"] = True
+
+    return render_kwargs_train, render_kwargs_test, start, grad_vars, optimizer
 
 
 class NeRF(nn.Module):
