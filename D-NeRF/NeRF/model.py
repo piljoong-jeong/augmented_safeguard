@@ -18,6 +18,19 @@ def inference_wrapper_batch(fn, chunk):
         ], dim=0)
     return ret
 
+def embed(inputs, viewdirs, embed_fn, embeddirs_fn):
+    
+    inputs_flat = torch.reshape(inputs, [-1, inputs.shape[-1]])
+    embedded = embed_fn(inputs_flat)
+
+    if viewdirs is not None:
+        input_dirs = viewdirs[:, None].expand(inputs.shape)
+        input_dirs_flat = torch.reshape(input_dirs, [-1, input_dirs.shape[-1]])
+        embedded_dirs = embeddirs_fn(input_dirs_flat)
+        embedded = torch.cat([embedded, embedded_dirs], dim=-1)
+
+    return embedded
+
 def run_network(
     inputs, 
     viewdirs, 
@@ -27,14 +40,7 @@ def run_network(
     netchunk=1024*64
 ):
 
-    inputs_flat = torch.reshape(inputs, [-1, inputs.shape[-1]])
-    embedded = embed_fn(inputs_flat)
-
-    if viewdirs is not None:
-        input_dirs = viewdirs[:, None].expand(inputs.shape)
-        input_dirs_flat = torch.reshape(input_dirs, [-1, input_dirs.shape[-1]])
-        embedded_dirs = embeddirs_fn(input_dirs_flat)
-        embedded = torch.cat([embedded, embedded_dirs], dim=-1)
+    embedded = embed(inputs, viewdirs, embed_fn, embeddirs_fn)
 
     outputs_flat = inference_wrapper_batch(fn, netchunk)(embedded)
     outputs = torch.reshape(
