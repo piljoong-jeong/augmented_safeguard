@@ -1,0 +1,157 @@
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+def decompose_ray_batch(ray_batch, is_time_included: bool):
+
+    
+    rays_o, rays_d = ray_batch[:, 0:3], ray_batch[:, 3:6]
+    # NOTE: `bounds` contain `frame_time` if D-NeRF
+    time_included = 1 if is_time_included else 0
+    viewdirs = ray_batch[:, -3:] if ray_batch.shape[-1] > (8+time_included) else None
+    bounds = torch.reshape(ray_batch[..., 6:(8+time_included)], [-1, 1, (2+time_included)])
+    near, far = bounds[..., 0], bounds[..., 1]
+    frame_time = bounds[..., 2] if is_time_included else None
+    
+    return rays_o, rays_d, viewdirs, near, far, frame_time
+
+def sample_z(near, far, N_samples, lindisp):
+    t_vals = torch.linspace(0.0, 1.0, steps=N_samples)
+    if not lindisp:
+        z_vals = (near * (1.0-t_vals)) + (far * (t_vals))
+    else:
+        z_vals = 1.0 / ( ( 1.0 / (near*(1.0-t_vals)) ) + ( 1.0 / (far*(t_vals))) )  # [-1, 1]
+    
+    return z_vals
+
+def add_noise_z(z_vals, perturb, pytest=False):
+    if perturb <= 0.0:
+        return z_vals
+    
+    mids = 0.5 * (z_vals[..., 1:] + z_vals[..., :-1])
+    upper = torch.cat([mids, z_vals[..., -1:]], dim=-1)
+    lower = torch.cat([z_vals[..., :1], mids], dim=-1)
+    t_rand = torch.rand(z_vals.shape) # NOTE: rand before expand would cause identical rand?
+
+    # Pytest, overwrite u with numpy's fixed random numbers
+    if pytest:
+        np.random.seed(0)
+        t_rand = np.random.rand(*list(z_vals.shape))
+        t_rand = torch.Tensor(t_rand)
+
+    z_vals = lower + (upper - lower) * t_rand
+    return z_vals
+
+
+def render_rays(
+        ray_batch, 
+        network_fn, 
+        network_query_fn, 
+        N_samples, 
+        retraw=False, 
+        lindisp=False, 
+        perturb=0.0, 
+        N_importance=0, 
+        network_fine=None, 
+        white_bkgd=False, 
+        raw_noise_std=0.0, 
+        verbose=False, 
+        pytest=False,
+):
+    
+    rays_o, rays_d, viewdirs, near, far, frame_time = decompose_ray_batch(ray_batch, is_time_included=False)
+
+    N_rays = ray_batch.shape[0]
+
+    # NOTE: get z-values
+    z_vals = sample_z(near, far, N_samples, lindisp).expand([N_rays, N_samples])
+    z_vals = add_noise_z(z_vals, perturb) # NOTE: to ensure CG recording
+
+    pts = rays_o[..., None, :] + rays_d[..., None, :] * z_vals[..., :, None]
+    
+
+    return
+
+def batchify_rays(rays_flat, chunk, **kwargs):
+
+    all_ret = {}
+    for i in range(0, rays_flat.shape[0], chunk):
+        ret = render_rays(rays_flat[i:i+chunk], **kwargs)
+        for k in ret:
+            if k not in all_ret:
+                all_ret[k] = []
+            all_ret[k].append(ret[k])
+
+    all_ret = {k: torch.cat(all_ret[k], 0) for k in all_ret}
+
+    return all_ret
+
+def get_rays(
+        H, 
+        W, 
+        K, 
+        c2w,
+):
+    
+    return None, None
+
+def render(
+        H, 
+        W, 
+        K, 
+        chunk=1024*32, 
+        rays=None, 
+        c2w=None, 
+        ndc=True, 
+        near=0.0, 
+        far=1.0, 
+        use_viewdirs=False,
+        c2w_staticcam=None,
+        **kwargs
+):
+    
+    if c2w is not None:
+        rays_o, rays_d = get_rays(H, W, K, c2w)
+    else:
+        rays_o, rays_d = rays
+
+
+    if use_viewdirs:
+        viewdirs = rays_d
+        if c2w_staticcam is not None:
+            rays_o, rays_d = get_rays(H, W, K, c2w_staticcam)
+        viewdirs = viewdirs / torch.norm(viewdirs, dim=-1, keepdim=True)
+        viewdirs = torch.reshape(viewdirs, [-1, 3]).float()
+
+    sh = rays_d.shape
+    if ndc:
+        rays_o, rays_d = ndc_rays(
+            H, 
+            W, 
+            K[0][0], 
+            1.0, 
+            rays_o, 
+            rays_d
+        )
+
+    rays_o = torch.reshape(rays_o, [-1, 3]).float()
+    rays_d = torch.reshape(rays_d, [-1, 3]).float()
+
+    near = near * torch.ones_like(rays_d[..., :1])
+    far = far * torch.ones_like(rays_d[..., :1])
+
+    rays = torch.cat([rays_o, rays_d, near, far], dim=-1)
+    if use_viewdirs:
+        rays = torch.cat([rays, viewdirs], dim=-1)
+
+    all_ret = batchify_rays(rays, chunk, **kwargs)
+    for k in all_ret:
+        k_sh = list(sh[:-1]) + list(all_ret[k].shape[1:])
+        all_ret[k] = torch.reshape(all_ret[k], k_sh)
+    
+    k_extract = ["rgb_map", "disp_map", "acc_map"]
+    ret_list = [all_ret[k] for k in k_extract]
+    ret_dict = {k: all_ret[k] for k in all_ret if k not in k_extract}
+
+    return ret_list + [ret_dict]

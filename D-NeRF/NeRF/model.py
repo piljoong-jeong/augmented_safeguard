@@ -6,6 +6,10 @@ import torch.nn.functional as F
 
 import NeRF.embedder as embedder
 
+def run_network():
+
+    return
+
 def create_NeRF(args):
 
     embed_fn, input_ch = embedder.get_embedder(args.multires, args.i_embed)
