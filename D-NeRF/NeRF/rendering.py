@@ -225,6 +225,32 @@ def get_rays(
     
     return rays_o, rays_d
 
+def ndc_rays(H, W, focal, near, rays_o, rays_d):
+    """
+    ### ndc_rays
+
+
+    """
+
+    # NOTE: shift ray origins to near plane (z=-n) (following last paragraph in Appendix. C)
+    t_n = -(near + rays_o[..., 2]) / rays_d[..., 2]
+    rays_o = rays_o + t_n[..., None] * rays_d
+
+    # NOTE: equation (25)
+    o0 = (-1. * focal / (0.5*W)) * (rays_o[..., 0] / rays_o[..., 2])
+    o1 = (-1. * focal / (0.5*H)) * (rays_o[..., 1] / rays_o[..., 2])
+    o2 = (1. + 2.*near / rays_o[..., 2])
+
+    # NOTE: equation (26)
+    d0 = (-1. * focal / (0.5*W)) * (rays_d[..., 0]/rays_d[..., 2] - rays_o[..., 0]/rays_o[..., 2])
+    d1 = (-1. * focal / (0.5*H)) * (rays_d[..., 1]/rays_d[..., 2] - rays_o[..., 1]/rays_o[..., 2])
+    d2 = -2. * near * (1. / rays_o[..., 2])
+
+    rays_o = torch.stack([o0, o1, o2], dim=-1)
+    rays_d = torch.stack([d0, d1, d2], dim=-1)
+    return rays_o, rays_d
+
+
 def render(
         H, 
         W, 
