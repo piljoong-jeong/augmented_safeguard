@@ -175,8 +175,8 @@ def render_rays(
     ret["disp0"] = disp_map_0
     ret["acc0"] = acc_map_0
     ret["z_std"] = torch.std(z_importance_samples, dim=-1, unbiased=False) # NOTE: dim: [N_rays]
-
     __stability_check()
+
     return ret
 
 def batchify_rays(rays_flat, chunk, **kwargs):
@@ -200,7 +200,30 @@ def get_rays(
         c2w,
 ):
     
-    return None, None
+    i, j = torch.meshgrid(
+        torch.linspace(0, W-1, W), 
+        torch.linspace(0, H-1, H)
+    )
+    i = i.t()
+    j = j.t()
+
+    fx = K[0, 0]
+    fy = K[1, 1]
+    cx = K[0, 2]
+    cy = K[1, 2]
+    dirs = torch.stack(
+        [
+            (i-cx)/fx, 
+            -(j-cy)/fy, # NOTE: image coord -> NDC coord
+            -torch.ones_like(i) # NOTE: lookat: -Z direction
+        ], dim=-1
+    )
+
+    # NOTE: convert NDC `dirs` to world coord
+    rays_d = torch.sum(dirs[..., np.newaxis, :] * c2w[:3, :3], dim=-1) # NOTE: is identical to: c2w @ dirs | c2w.dot(dirs)
+    rays_o = c2w[:3, -1].expand(rays_d.shape)
+    
+    return rays_o, rays_d
 
 def render(
         H, 
