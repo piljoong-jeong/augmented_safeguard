@@ -6,9 +6,43 @@ import torch.nn.functional as F
 
 import NeRF.embedder as embedder
 
-def run_network():
+def inference_wrapper_batch(fn, chunk):
 
-    return
+    if chunk is None:
+        return fn
+    
+    def ret(inputs):
+        return torch.cat([
+            fn(inputs[i:i+chunk]) 
+            for i in range(0, inputs.shape[0], chunk)
+        ], dim=0)
+    return ret
+
+def run_network(
+    inputs, 
+    viewdirs, 
+    fn, 
+    embed_fn, 
+    embeddirs_fn, 
+    netchunk=1024*64
+):
+
+    inputs_flat = torch.reshape(inputs, [-1, inputs.shape[-1]])
+    embedded = embed_fn(inputs_flat)
+
+    if viewdirs is not None:
+        input_dirs = viewdirs[:, None].expand(inputs.shape)
+        input_dirs_flat = torch.reshape(input_dirs, [-1, input_dirs.shape[-1]])
+        embedded_dirs = embeddirs_fn(input_dirs_flat)
+        embedded = torch.cat([embedded, embedded_dirs], dim=-1)
+
+    outputs_flat = inference_wrapper_batch(fn, netchunk)(embedded)
+    outputs = torch.reshape(
+        outputs_flat, 
+        list(inputs.shape[-1]) + [outputs_flat.shape[-1]]
+    ) # NOTE: dim: [N_rays, N_samples, output_ch=4]
+
+    return outputs
 
 def create_NeRF(args):
 
