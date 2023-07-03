@@ -81,6 +81,9 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     ) # NOTE: inv. normalized `depth_map`
     acc_map = torch.sum(weights, dim=-1)
 
+    if white_bkgd:
+        rgb_map = rgb_map + (1.0 - acc_map[..., None])
+
     return rgb_map, disp_map, acc_map, weights, depth_map
 
 def render_rays(
@@ -104,7 +107,8 @@ def render_rays(
     N_rays = ray_batch.shape[0]
 
     # NOTE: get z-values
-    z_vals = sample_z(near, far, N_samples, lindisp).expand([N_rays, N_samples])
+    z_vals = sample_z(near, far, N_samples, lindisp)
+    z_vals = z_vals.expand([N_rays, N_samples])
     z_vals = add_noise_z(z_vals, perturb) # NOTE: to ensure CG recording
 
     pts = rays_o[..., None, :] + rays_d[..., None, :] * z_vals[..., :, None]
