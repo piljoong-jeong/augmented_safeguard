@@ -3,6 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import sampler
+
 def decompose_ray_batch(ray_batch, is_time_included: bool):
 
     
@@ -109,12 +111,73 @@ def render_rays(
 
     raw = network_query_fn(pts, viewdirs, network_fn)
 
+    ret = {}
+    if retraw: ret["raw"] = raw
+
+    def __stability_check():
+        if False: # TODO: add DEBUG
+            return
+        for key, tensor in ret.items():
+            if torch.isnan(tensor).any():
+                print(f"[ERROR] Numerical error! {key=} contains NaN.")
+            if torch.isinf(tensor).any():
+                print(f"[ERROR] Numerical error! {key=} contains INF.")
+    
+    # NOTE: coarse network
     rgb_map, disp_map, acc_map, weights, depth_map = raw2outputs(
         raw, z_vals, rays_d, raw_noise_std, white_bkgd, pytest=pytest
     )
+    ret["rgb_map"] = rgb_map
+    ret["disp_map"] = disp_map
+    ret["acc_map"] = acc_map
+    __stability_check()
+    if N_importance <= 0:
+        return ret
 
+    # NOTE: fine network
+    rgb_map_0, disp_map_0, acc_map_0 = rgb_map, disp_map, acc_map
+    
 
-    return
+    # NOTE: importance sampling
+    z_vals_mid = 0.5 * (z_vals[..., 1:] + z_vals[..., :-1])
+    z_importance_samples = sampler.sample_pdf(
+        z_vals_mid, 
+        weights[..., 1:-1], 
+        N_importance, 
+        det=(perturb == 0.0), 
+        pytest=pytest
+    )
+    z_importance_samples = z_importance_samples.detach()
+
+    # NOTE: aggregate importance samples
+    z_vals, __IDX_NO_NEED = torch.sort(
+        torch.cat([z_vals, z_importance_samples], dim=-1),
+        dim=-1
+    )
+    pts = rays_o[..., None, :] + rays_d[..., None, :] * z_vals[..., :, None]
+
+    # NOTE: run fine network
+    run_fn = network_fn if network_fine is None else network_fine
+    raw = network_query_fn(pts, viewdirs, run_fn)
+    rgb_map, disp_map, acc_map, weights, depth_map = raw2outputs(
+        raw, 
+        z_vals, 
+        rays_d, 
+        raw_noise_std, 
+        white_bkgd, 
+        pytest=pytest
+    )
+
+    ret["rgb_map"] = rgb_map
+    ret["disp_map"] = disp_map
+    ret["acc_map"] = acc_map
+    ret["rgb0"] = rgb_map_0
+    ret["disp0"] = disp_map_0
+    ret["acc0"] = acc_map_0
+    ret["z_std"] = torch.std(z_importance_samples, dim=-1, unbiased=False) # NOTE: dim: [N_rays]
+
+    __stability_check()
+    return ret
 
 def batchify_rays(rays_flat, chunk, **kwargs):
 
