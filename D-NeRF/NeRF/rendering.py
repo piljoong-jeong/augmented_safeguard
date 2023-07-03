@@ -43,6 +43,43 @@ def add_noise_z(z_vals, perturb, pytest=False):
     z_vals = lower + (upper - lower) * t_rand
     return z_vals
 
+def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=False):
+    
+    
+
+    dists = z_vals[..., 1:] - z_vals[..., :-1]
+    dists = torch.cat(
+        [dists, torch.Tensor([1e10]).expand(dists[..., :1].shape)], 
+        dim=-1
+    )
+
+    # NOTE: rotate `dists` w.r.t. direction
+    dists = dists * torch.norm(rays_d[..., None, :], dim=-1)
+
+    # NOTE: color
+    rgb = torch.sigmoid(raw[..., :3]) # NOTE: sigmoid for guaranteeing positive value
+
+    # NOTE: add noise to prevent overfitting
+    noise = torch.randn(raw[..., 3].shape) * raw_noise_std if raw_noise_std > 0.0 else 0.0
+    # NOTE: eq. 3
+    raw2alpha = lambda raw, dists, activation_fn=F.relu: 1.0 - torch.exp(-activation_fn(raw) * dists)
+    alpha = raw2alpha(raw[..., 3] + noise, dists)
+    weights = alpha * torch.cumprod(
+        torch.cat([
+            torch.ones(alpha.shape[0], 1), 
+            1.0 - alpha + 1e-10
+        ], dim=-1), 
+        dim=-1
+    )[:, :-1]
+
+    rgb_map = torch.sum(weights[..., None] * rgb, dim=-2)
+    depth_map = torch.sum(weights * z_vals, dim=-1)
+    disp_map = 1.0 / torch.max(
+        1e-10*torch.ones_like(depth_map), depth_map/torch.sum(weights, dim=-1)
+    ) # NOTE: inv. normalized `depth_map`
+    acc_map = torch.sum(weights, dim=-1)
+
+    return rgb_map, disp_map, acc_map, weights, depth_map
 
 def render_rays(
         ray_batch, 
@@ -69,7 +106,13 @@ def render_rays(
     z_vals = add_noise_z(z_vals, perturb) # NOTE: to ensure CG recording
 
     pts = rays_o[..., None, :] + rays_d[..., None, :] * z_vals[..., :, None]
-    
+
+    raw = network_query_fn(pts, viewdirs, network_fn)
+
+    rgb_map, disp_map, acc_map, weights, depth_map = raw2outputs(
+        raw, z_vals, rays_d, raw_noise_std, white_bkgd, pytest=pytest
+    )
+
 
     return
 
