@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import sampler
+import NeRF.sampler
 
 def decompose_ray_batch(ray_batch, is_time_included: bool):
 
@@ -144,7 +144,7 @@ def render_rays(
 
     # NOTE: importance sampling
     z_vals_mid = 0.5 * (z_vals[..., 1:] + z_vals[..., :-1])
-    z_importance_samples = sampler.sample_pdf(
+    z_importance_samples = NeRF.sampler.sample_pdf(
         z_vals_mid, 
         weights[..., 1:-1], 
         N_importance, 
