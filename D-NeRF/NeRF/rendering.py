@@ -1,3 +1,5 @@
+from typing import Callable
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -183,11 +185,12 @@ def render_rays(
 
     return ret
 
-def batchify_rays(rays_flat, chunk, **kwargs):
+def batchify_rays(rays_flat, chunk, fn_render_rays, **kwargs):
 
     all_ret = {}
     for i in range(0, rays_flat.shape[0], chunk):
-        ret = render_rays(rays_flat[i:i+chunk], **kwargs)
+        # ret = render_rays(rays_flat[i:i+chunk], **kwargs)
+        ret = fn_render_rays(rays_flat[i:i+chunk], **kwargs)
         for k in ret:
             if k not in all_ret:
                 all_ret[k] = []
@@ -307,12 +310,13 @@ def prepare_rays(
 def images_from_rendering(
         rays: torch.Tensor, 
         chunk: int, 
-        rays_original_shape, 
+        fn_render_rays: Callable, 
+        rays_original_shape: torch.Size, 
         maps_to_extract: list = ["rgb_map", "disp_map", "acc_map"],
         **kwargs
 ):
     
-    all_ret = batchify_rays(rays, chunk, **kwargs)
+    all_ret = batchify_rays(rays, chunk, fn_render_rays, **kwargs)
     for k in all_ret:
         k_shape = list(rays_original_shape[:-1]) + list(all_ret[k].shape[1:])
         all_ret[k] = torch.reshape(all_ret[k], k_shape)
@@ -344,6 +348,6 @@ def render(
     if use_viewdirs:
         rays = torch.cat([rays, viewdirs], dim=-1)
 
-    ret_list, ret_dict = images_from_rendering(rays, chunk, rays_original_shape)
+    ret_list, ret_dict = images_from_rendering(rays, chunk, render_rays, rays_original_shape)
 
     return ret_list + [ret_dict]
