@@ -1,9 +1,13 @@
+import imageio.v2 as imageio # TODO: migrate to v3
+import os
+import time
 from typing import Callable
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from tqdm import tqdm, trange
 
 import NeRF.sampler
 
@@ -20,6 +24,7 @@ def decompose_ray_batch(ray_batch, is_time_included: bool):
     
     return rays_o, rays_d, viewdirs, near, far, frame_time
 
+# TODO: move to sampler.py
 def sample_z(near, far, N_samples, lindisp):
     t_vals = torch.linspace(0.0, 1.0, steps=N_samples)
     if not lindisp:
@@ -29,6 +34,7 @@ def sample_z(near, far, N_samples, lindisp):
     
     return z_vals
 
+# TODO: move to sampler.py
 def add_noise_z(z_vals, perturb, pytest=False):
     if perturb <= 0.0:
         return z_vals
@@ -77,7 +83,7 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     )[:, :-1]
 
     rgb_map = torch.sum(weights[..., None] * rgb, dim=-2)
-    depth_map = torch.sum(weights * z_vals, dim=-1)
+    depth_map = torch.sum(weights * z_vals, dim=-1) # NOTE: the more farther, the more darker; unintuitive! hence we use `disp_map`
     disp_map = 1.0 / torch.max(
         1e-10*torch.ones_like(depth_map), depth_map/torch.sum(weights, dim=-1)
     ) # NOTE: inv. normalized `depth_map`
@@ -104,7 +110,7 @@ def render_rays(
         pytest=False,
 ):
     
-    rays_o, rays_d, viewdirs, near, far, frame_time = decompose_ray_batch(ray_batch, is_time_included=False)
+    rays_o, rays_d, viewdirs, near, far, _ = decompose_ray_batch(ray_batch, is_time_included=False)
 
     N_rays = ray_batch.shape[0]
 
@@ -351,3 +357,54 @@ def render(
     ret_list, ret_dict = images_from_rendering(rays, chunk, render_rays, rays_original_shape)
 
     return ret_list + [ret_dict]
+
+def __to_8b(x):
+    return (255 * np.clip(x, 0, 1)).astype(np.uint8)
+
+def render_to_path(
+        render_poses, 
+        hwf, 
+        K, 
+        chunk, 
+        render_kwargs, 
+        gt_imgs=None, 
+        savedir=None, 
+        render_factor=0
+):
+    # TODO: remove dependency `K`; we already have `hwf`!
+
+    H, W, focal = hwf
+    if render_factor > 0:
+        H = H // render_factor
+        W = W // render_factor
+        focal = focal / render_factor # NOTE: float
+
+    rgbs, disps = [], []
+
+    t = time.time()
+    for idx, c2w in enumerate(tqdm(render_poses)):
+        print(f"{idx=} took {time.time()-t}s")
+        t = time.time()
+
+        rgb, disp, acc, _ = render(
+            H, W, K, 
+            chunk=chunk, 
+            c2w=c2w[:3, :4], 
+            **render_kwargs
+        )
+        rgbs.append(rgb.cpu().numpy())
+        disps.append(disp.cpu().numpy())
+        if idx == 0: print(f"{rgb.shape=} & {disp.shape=}")
+
+        """
+        if gt_imgs is not None and render_factor==0:
+            p = -10. * np.log10(np.mean(np.square(rgb.cpu().numpy() - gt_imgs[i])))
+            print(p)
+        """
+
+        if savedir is not None:
+            rgb8 = __to_8b(rgbs[-1])
+            filename = os.path.join(savedir, f"{idx:03d}.png")
+            imageio.imwrite(filename, rgb8)
+
+    return np.stack(rgbs, axis=0), np.stack(disps, axis=0)
