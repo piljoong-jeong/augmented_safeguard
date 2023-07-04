@@ -9,7 +9,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm, trange
 
+import NeRF.ops
 import NeRF.sampler
+
 
 def decompose_ray_batch(ray_batch, is_time_included: bool):
 
@@ -358,9 +360,6 @@ def render(
 
     return ret_list + [ret_dict]
 
-def __to_8b(x):
-    return (255 * np.clip(x, 0, 1)).astype(np.uint8)
-
 def render_to_path(
         render_poses, 
         hwf, 
@@ -403,7 +402,7 @@ def render_to_path(
         """
 
         if savedir is not None:
-            rgb8 = __to_8b(rgbs[-1])
+            rgb8 = NeRF.ops.to_8b(rgbs[-1])
             filename = os.path.join(savedir, f"{idx:03d}.png")
             imageio.imwrite(filename, rgb8)
 
