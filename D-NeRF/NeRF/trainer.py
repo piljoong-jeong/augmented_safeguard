@@ -69,6 +69,34 @@ def __test_render(
     return
 
 
+def shuffle_rays(H, W, K, images, poses, i_train):
+
+    # NOTE: dim: [N(#images, dim=0), ro + rd, H, W, 3]
+    # NOTE: `get_rays` returns [ro(1D), H, W, 3] & [rd(1D), H, W, 3]
+    with torch.no_grad():
+        rays = torch.stack([NeRF.rendering.get_rays(H, W, K, p) for p in poses[:, :3, :4]], dim=0).cpu().detach().numpy()
+
+
+    print(f"[DEBUG] Done. concats")
+    # NOTE: dim: [N, ro + rd + rgb, H, W, 3]
+    # NOTE: assort per-pixel info: ray origin + ray direction + rgb pixel value
+    rays_rgb = np.concatenate([rays, images[:, None]], axis=1)
+
+    # NOTE: dim: [N, H, W, ro+rd+rgb, 3]
+    rays_rgb = np.transpose(rays_rgb, [0, 2, 3, 1, 4])
+
+    # NOTE: train images only
+    rays_rgb = np.stack([rays_rgb[i] for i in i_train], axis=0)
+
+    # NOTE: dim: [i_train*H*W, ro+rd+rgb, 3]
+    rays_rgb = np.reshape(rays_rgb, [-1, 3, 3]).astype(np.float32)
+
+    print(f"[DEBUG] shuffle rays")
+    np.random.shuffle(rays_rgb)
+
+    print(f"[DEBUG] done.")
+    return rays_rgb
+
 def train(args):
 
     # ---------------------------------------------
@@ -128,3 +156,15 @@ def train(args):
             render_test_kwargs=render_test_kwargs
         )
     
+    # ----------------------------------------------
+
+    N_rand = args.N_rand
+    
+    if (use_shuffled_batching := not args.no_batching):
+        rays_rgb = shuffle_rays(H, W, K, images, poses, i_train)
+        i_batch = 0
+
+    
+
+
+
