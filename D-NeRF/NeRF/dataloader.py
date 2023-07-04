@@ -78,3 +78,22 @@ def load_blender_data(basedir, half_res: bool=False, testskip=1):
         imgs = imgs_half_res
 
     return imgs, poses, render_poses, [H, W, focal_length], i_split
+
+
+def post_load_blender_data(i_split, images, is_white_bkgd):
+    """
+    Post blender data processing function to avoid redundancy
+    """
+
+    i_train, i_val, i_test = i_split
+
+    # NOTE: arbitrarily set
+    near = 2.0
+    far = 6.0
+
+    if is_white_bkgd:
+        images = images[..., :3] * images[..., -1:] + (1.0 - images[..., -1:])
+    else:
+        images = images[..., :3]
+
+    return i_train, i_val, i_test, near, far, images

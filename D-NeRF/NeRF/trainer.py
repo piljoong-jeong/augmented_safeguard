@@ -78,15 +78,7 @@ def train(args):
     elif args.dataset_type == "blender":
         images, poses, render_poses, hwf, i_split = NeRF.dataloader.load_blender_data(args.datadir, args.half_res, args.testskip)
 
-        i_train, i_val, i_test = i_split
-
-        near = 2.0
-        far = 6.0
-
-        if args.white_bkgd:
-            images = images[..., :3] * images[..., -1:] + (1.0 - images[..., -1:])
-        else:
-            images = images[..., :3]
+        i_train, i_val, i_test, near, far, images = NeRF.dataloader.post_load_blender_data(i_split, images, args.white_bkgd)
     # ---------------------------------------------
 
     if args.render_test:
