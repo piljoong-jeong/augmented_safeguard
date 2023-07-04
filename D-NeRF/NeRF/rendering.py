@@ -304,6 +304,25 @@ def prepare_rays(
     return rays_o, rays_d, near, far, viewdirs, rays_original_shape
 
 
+def images_from_rendering(
+        rays: torch.Tensor, 
+        chunk: int, 
+        rays_original_shape, 
+        maps_to_extract: list = ["rgb_map", "disp_map", "acc_map"],
+        **kwargs
+):
+    
+    all_ret = batchify_rays(rays, chunk, **kwargs)
+    for k in all_ret:
+        k_shape = list(rays_original_shape[:-1]) + list(all_ret[k].shape[1:])
+        all_ret[k] = torch.reshape(all_ret[k], k_shape)
+    
+    ret_list = [all_ret[k] for k in maps_to_extract]
+    ret_dict = {k: all_ret[k] for k in all_ret if k not in maps_to_extract}
+
+    return ret_list, ret_dict
+
+
 def render(
         H, 
         W, 
@@ -325,13 +344,6 @@ def render(
     if use_viewdirs:
         rays = torch.cat([rays, viewdirs], dim=-1)
 
-    all_ret = batchify_rays(rays, chunk, **kwargs)
-    for k in all_ret:
-        k_shape = list(rays_original_shape[:-1]) + list(all_ret[k].shape[1:])
-        all_ret[k] = torch.reshape(all_ret[k], k_shape)
-    
-    k_extract = ["rgb_map", "disp_map", "acc_map"]
-    ret_list = [all_ret[k] for k in k_extract]
-    ret_dict = {k: all_ret[k] for k in all_ret if k not in k_extract}
+    ret_list, ret_dict = images_from_rendering(rays, chunk, rays_original_shape)
 
     return ret_list + [ret_dict]
