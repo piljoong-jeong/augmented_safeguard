@@ -255,6 +255,55 @@ def ndc_rays(H, W, focal, near, rays_o, rays_d):
     return rays_o, rays_d
 
 
+def prepare_rays(
+        H, 
+        W, 
+        K, 
+        rays=None, 
+        c2w=None, 
+        ndc=True, 
+        near=0.0, 
+        far=1.0, 
+        use_viewdirs=False, 
+        c2w_staticcam=None, 
+):
+    """
+    ### rendering.prepare_rays
+
+    Returns transformed ray origin & direction, and its corresponding near & far bounds, as well as the original shape of ray tensor (used to reshape flattened ray batches) 
+    
+    """
+    if c2w is not None:
+        rays_o, rays_d = get_rays(H, W, K, c2w)
+    else:
+        rays_o, rays_d = rays
+    rays_original_shape = rays_d.shape
+
+    if use_viewdirs:
+        viewdirs = rays_d
+        if c2w_staticcam is not None:
+            rays_o, rays_d = get_rays(H, W, K, c2w_staticcam)
+        viewdirs = viewdirs / torch.norm(viewdirs, dim=-1, keepdim=True)
+        viewdirs = torch.reshape(viewdirs, [-1, 3]).float()
+
+    if ndc:
+        rays_o, rays_d = ndc_rays(
+            H, 
+            W, 
+            K[0][0], 
+            1.0, 
+            rays_o, 
+            rays_d
+        )
+
+    rays_o = torch.reshape(rays_o, [-1, 3]).float()
+    rays_d = torch.reshape(rays_d, [-1, 3]).float()
+    near = near * torch.ones_like(rays_d[..., :1])
+    far = far * torch.ones_like(rays_d[..., :1])
+
+    return rays_o, rays_d, near, far, viewdirs, rays_original_shape
+
+
 def render(
         H, 
         W, 
@@ -270,35 +319,7 @@ def render(
         **kwargs
 ):
     
-    if c2w is not None:
-        rays_o, rays_d = get_rays(H, W, K, c2w)
-    else:
-        rays_o, rays_d = rays
-
-
-    if use_viewdirs:
-        viewdirs = rays_d
-        if c2w_staticcam is not None:
-            rays_o, rays_d = get_rays(H, W, K, c2w_staticcam)
-        viewdirs = viewdirs / torch.norm(viewdirs, dim=-1, keepdim=True)
-        viewdirs = torch.reshape(viewdirs, [-1, 3]).float()
-
-    sh = rays_d.shape
-    if ndc:
-        rays_o, rays_d = ndc_rays(
-            H, 
-            W, 
-            K[0][0], 
-            1.0, 
-            rays_o, 
-            rays_d
-        )
-
-    rays_o = torch.reshape(rays_o, [-1, 3]).float()
-    rays_d = torch.reshape(rays_d, [-1, 3]).float()
-
-    near = near * torch.ones_like(rays_d[..., :1])
-    far = far * torch.ones_like(rays_d[..., :1])
+    rays_o, rays_d, near, far, viewdirs, rays_original_shape = prepare_rays(H, W, K, rays, c2w, ndc, near, far, use_viewdirs, c2w_staticcam)
 
     rays = torch.cat([rays_o, rays_d, near, far], dim=-1)
     if use_viewdirs:
@@ -306,8 +327,8 @@ def render(
 
     all_ret = batchify_rays(rays, chunk, **kwargs)
     for k in all_ret:
-        k_sh = list(sh[:-1]) + list(all_ret[k].shape[1:])
-        all_ret[k] = torch.reshape(all_ret[k], k_sh)
+        k_shape = list(rays_original_shape[:-1]) + list(all_ret[k].shape[1:])
+        all_ret[k] = torch.reshape(all_ret[k], k_shape)
     
     k_extract = ["rgb_map", "disp_map", "acc_map"]
     ret_list = [all_ret[k] for k in k_extract]
