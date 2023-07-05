@@ -1,10 +1,12 @@
 import imageio.v2 as imageio
 import os
+import time
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from tqdm import trange
 
 import NeRF.dataloader
 import NeRF.model
@@ -71,10 +73,11 @@ def __test_render(
 
 def shuffle_rays(H, W, K, images, poses, i_train):
 
+    print(f"[DEBUG] get rays")
     # NOTE: dim: [N(#images, dim=0), ro + rd, H, W, 3]
     # NOTE: `get_rays` returns [ro(1D), H, W, 3] & [rd(1D), H, W, 3]
     with torch.no_grad():
-        rays = torch.stack([NeRF.rendering.get_rays(H, W, K, p) for p in poses[:, :3, :4]], dim=0).cpu().detach().numpy()
+        rays = torch.stack([NeRF.rendering.get_rays(H, W, K, p) for p in poses[:, :3, :4]], dim=0).detach().cpu().numpy()
 
 
     print(f"[DEBUG] Done. concats")
@@ -97,6 +100,7 @@ def shuffle_rays(H, W, K, images, poses, i_train):
     print(f"[DEBUG] done.")
     return rays_rgb
 
+# TODO: to be clear, this is not only for training; test rendering is included - rename it
 def train(args):
 
     # ---------------------------------------------
@@ -135,6 +139,7 @@ def train(args):
             "far": far, 
         })
     )
+    render_train_kwargs.update(dict_bounds)
 
     _device = "cuda" # TODO: fix
     render_poses = torch.Tensor(render_poses).to(_device)
@@ -163,6 +168,23 @@ def train(args):
     if (use_shuffled_batching := not args.no_batching):
         rays_rgb = shuffle_rays(H, W, K, images, poses, i_train)
         i_batch = 0
+
+    if use_shuffled_batching:
+        images = torch.Tensor(images).to(_device)
+        rays_rgb = torch.Tensor(rays_rgb).to(_device)
+    poses = torch.Tensor(poses).to(_device)
+
+    # NOTE: train iteration
+    N_iters = 200000+1 # NOTE: add to arguments
+    print(f"[DEBUG] begin training; views: {i_train=} {i_test=} {i_val=}")
+
+    psnrs = []
+    iternums = []
+    start = start + 1
+    for i in trange(start, N_iters):
+        time0 = time.time()
+
+
 
     
 
