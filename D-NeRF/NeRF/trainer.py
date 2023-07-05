@@ -184,6 +184,21 @@ def train(args):
     for i in trange(start, N_iters):
         time0 = time.time()
 
+        if use_shuffled_batching:
+            batch = rays_rgb[i_batch : i_batch + N_rand]
+            batch = torch.transpose(batch, 0, 1)
+            batch_rays, target_s = batch[:2], batch[2]
+
+            i_batch += N_rand
+            if i_batch >= rays_rgb.shape[0]:
+                print(f"[DEBUG] shuffle data after an epoch!")
+                rays_rgb = rays_rgb[
+                    (idx_rand := torch.randperm(rays_rgb.shape[0]))
+                ]
+                i_batch = 0
+
+        
+
 
 
     
