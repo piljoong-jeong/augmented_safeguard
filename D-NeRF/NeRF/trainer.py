@@ -242,11 +242,15 @@ def train(args):
                     ), dim=-1
                 )
 
-                
+            coords = torch.reshape(coords, [-1, 2])
+            select_coords = coords[
+                np.random.choice(coords.shape[0], size=[N_rand], replace=False)
+            ].long()
 
+            batch_rays = torch.stack([
+                rays_o[select_coords[:, 0], select_coords[:, 1]],
+                rays_d[select_coords[:, 0], select_coords[:, 1]] 
+            ], dim=0)
 
-
-    
-
-
-
+            # NOTE: GT pixels
+            target_s = target[select_coords[:, 0], select_coords[:, 1]]
