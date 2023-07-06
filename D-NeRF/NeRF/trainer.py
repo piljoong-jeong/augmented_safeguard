@@ -197,7 +197,52 @@ def train(args):
                 ]
                 i_batch = 0
 
-        
+        # NOTE: if not shuffled batching, generate ray batch per image
+        else:
+            img_i = np.random.choice(i_train)
+            target = torch.Tensor(images[img_i]).to(_device)
+            pose = poses[img_i, :3, :4]
+
+            # TODO: meaning??
+            if N_rand is not None:
+                
+                rays_o, rays_d = NeRF.rendering.get_rays(H, W, K, torch.Tensor(pose))
+
+                # NOTE: for fast training
+                if i < args.precrop_iters:
+                    dH = int(H//2 * args.precrop_frac)
+                    dW = int(W//2 * args.precrop_frac)
+
+                    h_start = H//2 - dH
+                    h_end = H//2 + dH - 1
+                    h_steps = 2*dH 
+
+                    w_start = W//2 - dW
+                    w_end = W//2 + dW - 1
+                    w_steps = 2*dW                   
+
+                    if i == start:
+                        print(f"[INFO ] center cropping of size {2*dH} x {2*dW}is enabled until iter {args.precrop_iters}")
+
+                # NOTE: ray batch from all pixels
+                else:
+                    
+                    h_start = 0
+                    h_end = H - 1
+                    h_steps = H
+
+                    w_start = 0
+                    w_end = W - 1
+                    w_steps = W
+                
+                coords = torch.stack(
+                    torch.meshgrid(
+                        torch.linspace(h_start, h_end, h_steps), 
+                        torch.linspace(w_start, w_end, w_steps)
+                    ), dim=-1
+                )
+
+                
 
 
 
