@@ -288,4 +288,9 @@ def train(args):
         psnr_fine = NeRF.metric.loss_to_PSNR(img_loss_fine)
         psnr_coarse = NeRF.metric.loss_to_PSNR(img_loss_coarse)
 
-        # TODO: learning rate update
+        # NOTE: learning rate update (sec. 5.3)
+        decay_rate = 0.1
+        decay_steps = args.lrate_decay * 1000
+        new_lrate = args.lrate * (decay_rate ** (global_step / decay_steps))
+        for param_group in optimizer.param_groups:
+            param_group["lr"] = new_lrate
