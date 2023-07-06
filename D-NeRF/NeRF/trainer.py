@@ -9,6 +9,8 @@ import torch.nn.functional as F
 from tqdm import trange
 
 import NeRF.dataloader
+import NeRF.loss
+import NeRF.metric
 import NeRF.model
 import NeRF.ops
 import NeRF.rendering
@@ -254,3 +256,36 @@ def train(args):
 
             # NOTE: GT pixels
             target_s = target[select_coords[:, 0], select_coords[:, 1]]
+        # NOTE: end of shuffled batch ray generation
+
+        # NOTE: core optimization
+        rgb, disp, acc, extras = NeRF.rendering.render(
+            H, W, K, 
+            chunk=args.chunk, 
+            rays=batch_rays, 
+            verbose=i < 10, 
+            retraw=True, 
+            **render_train_kwargs
+        )
+
+        # NOTE: loss calculation & backpropagation
+        optimizer.zero_grad()
+        img_loss_fine = NeRF.loss.image_to_MSE(
+            output=rgb, 
+            target=target_s
+        )
+        loss = img_loss_fine
+        if "rgb0" in extras:
+            img_loss_coarse = NeRF.loss.image_to_MSE(
+                output=extras["rgb0"], 
+                target=target_s
+            )
+            loss = loss + img_loss_coarse
+        loss.backward()
+        optimizer.step()
+
+        # NOTE: PSNR for statistics
+        psnr_fine = NeRF.metric.loss_to_PSNR(img_loss_fine)
+        psnr_coarse = NeRF.metric.loss_to_PSNR(img_loss_coarse)
+
+        # TODO: learning rate update
