@@ -3,10 +3,11 @@ import os
 import time
 
 import numpy as np
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from tqdm import trange
+from tqdm import tqdm, trange
 
 import NeRF.dataloader
 import NeRF.loss
@@ -294,3 +295,71 @@ def train(args):
         new_lrate = args.lrate * (decay_rate ** (global_step / decay_steps))
         for param_group in optimizer.param_groups:
             param_group["lr"] = new_lrate
+
+        # NOTE: logging
+        dt = time.time() - time0
+        # NOTE: save checkpoints TODO: rename `args.i_weights`
+        if i % args.i_weights == 0:
+            path = os.path.join(basedir, expname, f"{i:06d}.tar")
+            torch.save(
+                {
+                    "global_step": global_step, 
+                    "network_fn_state_dict": render_train_kwargs["network_fn"].state_dict(), 
+                    "network_fine_state_dict": render_train_kwargs["network_fine"].state_dict(), 
+                    "optimizer_state_dict": optimizer.state_dict(),
+                }, f=path
+            )
+
+        # NOTE: save video
+        if i % args.i_video == 0 and i > 0:
+            __test_render(
+                basedir, 
+                expname, 
+                start, 
+                render_poses, 
+                hwf, 
+                K, 
+                args.chunk,
+                args.render_factor, 
+                args.render_test, 
+                gt_images=images, 
+                render_test_kwargs=render_test_kwargs
+            )
+
+        if i % args.i_print == 0:
+            tqdm.write(f"[INFO ] train; iter={i}, loss={loss.item()}, psnr={psnr_fine.item()}")
+
+            # NOTE: render for plot
+            with torch.no_grad():
+                rgb, depth, acc, _ = NeRF.rendering.render(
+                    H, W, K, 
+                    c2w=(testpose := poses[len(poses)//2])[:3, :4], 
+                    **render_test_kwargs
+                )
+
+            # NOTE: plotting
+            psnrs.append(psnr_fine.detach().cpu().numpy())
+            iternums.append(i)
+
+            fig = plt.figure(figsize=(10, 4))
+            ax1 = fig.add_subplot(1, 2, 1)
+            ax1.imshow(rgb.cpu())
+            ax1.set_title(f"Iteration: {i}")
+            ax2 = fig.add_subplot(1, 2, 2)
+            ax2.plot(iternums, psnrs)
+            ax2.set_title(f"PSNR")
+            fig.show() # TODO: check if this should be turned on; why not headless?
+
+            # NOTE: save plot
+            dir_iter_plot = os.path.join(basedir, expname, "iter_plots")
+            os.makedirs(dir_iter_plot, exist_ok=True)
+            fig.savefig(
+                os.path.join(dir_iter_plot, f"iter={i}_PSNR={psnr_fine.item():.6f}.png")
+            )
+
+            fig.clear()
+            plt.close(fig)
+
+        global_step += 1
+
+    return
