@@ -1,6 +1,7 @@
 import imageio.v2 as imageio
 import os
 import time
+from typing import Callable
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -66,7 +67,7 @@ def __test_render(
         render_test_kwargs, 
         gt_imgs=gt_images,
         savedir=test_save_dir, 
-        render_factor=render_factor
+        render_factor=render_factor, 
     )
     imageio.mimwrite(os.path.join(test_save_dir, "video.mp4"), NeRF.ops.to_8b(rgbs), fps=30, quality=10)
     print(f"[DEBUG] Done test rendering at {test_save_dir}")
@@ -103,13 +104,31 @@ def shuffle_rays(H, W, K, images, poses, i_train):
     print(f"[DEBUG] done.")
     return rays_rgb
 
+def initialize_NeRF(fn_create_NeRF: Callable, near: float, far: float, args):
+    """
+    ### trainer.initialize_NeRF
+
+    Returns NeRF states with updated near & far bound, as well as its continuing global step
+    """
+    
+    render_train_kwargs, render_test_kwargs, start, grad_vars, optimizer = fn_create_NeRF(args)
+    global_step = start
+    dict_bounds = {
+        "near": near, 
+        "far": far, 
+    }
+    render_train_kwargs.update(dict_bounds)
+    render_test_kwargs.update(dict_bounds)
+
+    return render_train_kwargs, render_test_kwargs, global_step, grad_vars, optimizer
+
 # TODO: to be clear, this is not only for training; test rendering is included - rename it
 def train(args):
 
     # ---------------------------------------------
     if args.dataset_type == "llff":
-        # TODO: implement
-        raise NotImplementedError(f"[ERROR] for D-NeRF, llff data is not required!")
+        # TODO: implement (used in vanilla NeRF)
+        raise NotImplementedError
     elif args.dataset_type == "blender":
         images, poses, render_poses, hwf, i_split = NeRF.dataloader.load_blender_data(args.datadir, args.half_res, args.testskip)
 
@@ -133,16 +152,8 @@ def train(args):
     expname = args.expname
     save_args_and_config(basedir, expname, args)
 
-
-    render_train_kwargs, render_test_kwargs, start, grad_vars, optimizer = NeRF.model.create_NeRF(args)
-    global_step = start
-    render_test_kwargs.update(
-        (dict_bounds := {
-            "near": near, 
-            "far": far, 
-        })
-    )
-    render_train_kwargs.update(dict_bounds)
+    render_train_kwargs, render_test_kwargs, global_step, grad_vars, optimizer = initialize_NeRF(NeRF.model.create_NeRF, near, far, args)
+    
 
     _device = "cuda" # TODO: fix
     render_poses = torch.Tensor(render_poses).to(_device)
@@ -153,7 +164,7 @@ def train(args):
         return __test_render(
             basedir, 
             expname, 
-            start, 
+            global_step, 
             render_poses, 
             hwf, 
             K, 
