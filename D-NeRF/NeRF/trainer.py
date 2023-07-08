@@ -17,7 +17,7 @@ import NeRF.ops
 import NeRF.rendering
 
 
-def __save_args_and_config(basedir, expname, args):
+def save_args_and_config(basedir, expname, args):
 
     os.makedirs(os.path.join(basedir, expname), exist_ok=True)
     f = os.path.join(basedir, expname, "args.txt")
@@ -32,7 +32,7 @@ def __save_args_and_config(basedir, expname, args):
 
     return
 
-@torch.no_grad
+@torch.no_grad()
 def __test_render(
         
         basedir, 
@@ -131,7 +131,7 @@ def train(args):
 
     basedir = args.basedir
     expname = args.expname
-    __save_args_and_config(basedir, expname, args)
+    save_args_and_config(basedir, expname, args)
 
 
     render_train_kwargs, render_test_kwargs, start, grad_vars, optimizer = NeRF.model.create_NeRF(args)
