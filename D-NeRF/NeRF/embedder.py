@@ -10,6 +10,7 @@ import torch.nn as nn
 class Embedder:
     def __init__(self, **kwargs) -> None:
         self.kwargs = kwargs
+        self.create_embedding_func()
 
     def embed(self, inputs):
         # NOTE: for organization purpose

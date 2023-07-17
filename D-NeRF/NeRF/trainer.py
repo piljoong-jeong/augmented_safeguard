@@ -194,7 +194,7 @@ def train(args):
 
     psnrs = []
     iternums = []
-    start = start + 1
+    start = global_step + 1
     for i in trange(start, N_iters):
         time0 = time.time()
 
