@@ -133,9 +133,11 @@ def render_rays(
             return
         for key, tensor in ret.items():
             if torch.isnan(tensor).any():
-                print(f"[ERROR] Numerical error! {key=} contains NaN.")
+                # print(f"[ERROR] Numerical error! {key=} contains NaN.")
+                pass
             if torch.isinf(tensor).any():
-                print(f"[ERROR] Numerical error! {key=} contains INF.")
+                # print(f"[ERROR] Numerical error! {key=} contains INF.")
+                pass
     
     # NOTE: coarse network
     rgb_map, disp_map, acc_map, weights, depth_map = raw2outputs(
