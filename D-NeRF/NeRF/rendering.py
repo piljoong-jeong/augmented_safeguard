@@ -234,9 +234,6 @@ def get_rays(
         ], dim=-1
     )
 
-    print(f"[DEBUG] in rendering.get_rays(); {c2w.shape=}")
-    print(f"[DEBUG] in rendering.get_rays(); {dirs.shape=}")
-
     # NOTE: convert NDC `dirs` to world coord
     rays_d = torch.sum(dirs[..., np.newaxis, :] * c2w[:3, :3], dim=-1) # NOTE: is identical to: c2w @ dirs | c2w.dot(dirs)
     rays_o = c2w[:3, -1].expand(rays_d.shape)
