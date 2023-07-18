@@ -323,10 +323,13 @@ def images_from_rendering(
         chunk: int, 
         fn_render_rays: Callable, 
         rays_original_shape: torch.Size, 
-        maps_to_extract: list = ["rgb_map", "disp_map", "acc_map"],
+        # maps_to_extract: list = ["rgb_map", "disp_map", "acc_map"],
         **kwargs
 ):
     
+    # TODO: refactor
+    maps_to_extract = ["rgb_map", "disp_map", "acc_map"]
+
     all_ret = batchify_rays(rays, chunk, fn_render_rays, **kwargs)
     for k in all_ret:
         k_shape = list(rays_original_shape[:-1]) + list(all_ret[k].shape[1:])
