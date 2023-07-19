@@ -251,8 +251,10 @@ def train(args):
                 
                 coords = torch.stack(
                     torch.meshgrid(
-                        torch.linspace(h_start, h_end, h_steps), 
-                        torch.linspace(w_start, w_end, w_steps)
+                        [
+                            torch.linspace(h_start, h_end, h_steps), 
+                            torch.linspace(w_start, w_end, w_steps)
+                        ], indexing="ij"
                     ), dim=-1
                 )
 

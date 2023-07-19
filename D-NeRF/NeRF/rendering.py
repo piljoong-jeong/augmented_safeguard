@@ -217,12 +217,13 @@ def get_rays(
         c2w,
 ):
     
+    # FIXME: see if error occurs
     i, j = torch.meshgrid(
-        torch.linspace(0, W-1, W), 
-        torch.linspace(0, H-1, H)
+        [torch.linspace(0, H-1, H), 
+        torch.linspace(0, W-1, W) ], indexing="ij"
     )
-    i = i.t()
-    j = j.t()
+    # i = i.t()
+    # j = j.t()
 
     fx = K[0, 0]
     fy = K[1, 1]
