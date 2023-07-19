@@ -11,6 +11,7 @@ from tqdm import tqdm, trange
 
 import NeRF.ops
 import NeRF.sampler
+import NeRF.util
 
 
 def decompose_ray_batch(ray_batch, is_time_included: bool):
@@ -198,8 +199,11 @@ def render_rays(
 def batchify_rays(rays_flat, chunk, fn_render_rays, **kwargs):
 
     all_ret = {}
+
+    print(f"[DEBUG] in batchify_rays; {chunk=} / total={rays_flat.shape[0]}")
+
     for i in range(0, rays_flat.shape[0], chunk):
-        # ret = render_rays(rays_flat[i:i+chunk], **kwargs)
+        print(f"[DEBUG] in batchify_rays; {i=} | {NeRF.util.get_gpu_memory_usage()}")
         ret = fn_render_rays(rays_flat[i:i+chunk], **kwargs)
         for k in ret:
             if k not in all_ret:
