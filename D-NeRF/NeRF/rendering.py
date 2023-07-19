@@ -202,9 +202,13 @@ def batchify_rays(rays_flat, chunk, fn_render_rays, **kwargs):
 
     print(f"[DEBUG] in batchify_rays; {chunk=} / total={rays_flat.shape[0]}")
 
+    
+
     for i in range(0, rays_flat.shape[0], chunk):
         print(f"[DEBUG] in batchify_rays; {i=} | {NeRF.util.get_gpu_memory_usage()}")
-        ret = fn_render_rays(rays_flat[i:i+chunk], **kwargs)
+        lambda_render_rays = lambda x, i=i, chunk=chunk, **kwargs: fn_render_rays(x[i:i+chunk], **kwargs)
+        ret = lambda_render_rays(rays_flat, i, chunk, **kwargs)
+        # ret = fn_render_rays(rays_flat[i:i+chunk], **kwargs)
         for k in ret:
             if k not in all_ret:
                 all_ret[k] = []
