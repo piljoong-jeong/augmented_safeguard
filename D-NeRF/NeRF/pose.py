@@ -56,4 +56,4 @@ def pose_spherical(theta, phi, radius):
     # NOTE: c2w: inverse of extrinsic matrix
     return _cam_to_world(render_pose)
 
-# TODO: Rodrigues rotation?
+# TODO: Rodrigues rotation? maybe not?
