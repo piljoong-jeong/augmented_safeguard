@@ -46,6 +46,7 @@ def pose_spherical(theta, phi, radius):
     render_pose = _rotate_theta(theta / 180. * np.pi) @ render_pose
 
     def _cam_to_world(pose):
+        # NOTE: should we wrap this with `np.array`?
         return torch.Tensor([
             [-1, 0, 0, 0], # NOTE: invert X-axis
             [0, 0, 1, 0], # NOTE: switch Y<->Z
