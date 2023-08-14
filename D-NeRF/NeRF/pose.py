@@ -47,12 +47,12 @@ def pose_spherical(theta, phi, radius):
 
     def _cam_to_world(pose):
         # NOTE: should we wrap this with `np.array`?
-        return torch.Tensor([
+        return torch.Tensor(np.array([
             [-1, 0, 0, 0], # NOTE: invert X-axis
             [0, 0, 1, 0], # NOTE: switch Y<->Z
             [0, 1, 0, 0], # NOTE: switch Z<->Y
             [0, 0, 0, 1]
-        ]) @ pose
+        ])) @ pose
 
     # NOTE: c2w: inverse of extrinsic matrix
     return _cam_to_world(render_pose)
