@@ -54,7 +54,7 @@ def load_blender_data(basedir, half_res: bool=False, testskip=1):
 
     H, W = imgs[0].shape[:2]
     camera_angle_x = float(meta["camera_angle_x"])
-    focal_length = 0.5*W / np.tan(camera_angle_x/2.) # NOTE: see handwritten note
+    focal_length = 0.5*W / np.tan(0.5*camera_angle_x) # NOTE: see handwritten note
 
     # NOTE: poses for inference/test
     render_poses = torch.stack(
