@@ -223,8 +223,9 @@ def get_rays(
         [torch.linspace(0, H-1, H), 
         torch.linspace(0, W-1, W) ], indexing="ij"
     )
-    # i = i.t()
-    # j = j.t()
+    # FIXME: test 23/08/15
+    i = i.t()
+    j = j.t()
 
     fx = K[0, 0]
     fy = K[1, 1]
