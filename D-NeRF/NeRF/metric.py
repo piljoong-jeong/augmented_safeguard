@@ -19,7 +19,7 @@ class MSE:
     
 class PSNR:
     def __call__(self, pred, gt):
-        return 10 * torch.log10(1 / MSE(pred, gt))
+        return 10 * torch.log10(1 / MSE()(pred, gt))
     
 class SSIM:
     def __call__(self, pred, gt, w_size=11, size_average=True, full=False):
@@ -29,8 +29,8 @@ class SSIM:
         - pred: [B, C, H, W]
         - gt: [B, C, H, W]
         - w_size: Patch window size; widely chosen: https://en.wikipedia.org/wiki/Structural_similarity#Application_of_the_formula
-        - size_average: 
-        - full: 
+        - size_average: Returns averaged SSIM over window if True, per-pixel otherwise
+        - full: Returns contrast sensitivity, as well as SSIM
 
         """
 
@@ -108,3 +108,22 @@ class SSIM:
         )
 
         return gaussian / gaussian.sum()
+    
+class LPIPS:
+    """
+    Learned Perceptual Image Patch Similarity
+    """
+
+    def __init__(self):
+        import lpips
+        self.model = lpips.LPIPS(net="vgg").cuda()
+
+    def __call__(self, pred, gt, normalized=True):
+        """
+        Smaller is better
+        """
+        if normalized:
+            pred = pred * 2.0 - 1.0
+            gt = gt * 2.0 - 1.0
+        error = self.model.forward(pred, gt)
+        return torch.mean(error)
