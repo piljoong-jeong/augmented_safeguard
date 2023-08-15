@@ -78,10 +78,19 @@ def __test_render(
 def shuffle_rays(H, W, K, images, poses, i_train):
 
     print(f"[DEBUG] get rays")
+    focal = K[0][0]
+
     # NOTE: dim: [N(#images, dim=0), ro + rd, H, W, 3]
     # NOTE: `get_rays` returns [ro(1D), H, W, 3] & [rd(1D), H, W, 3]
-    with torch.no_grad():
-        rays = torch.stack([NeRF.rendering.get_rays(H, W, K, p) for p in poses[:, :3, :4]], dim=0).detach().cpu().numpy()
+    # FIXME: remove if wrong
+    # with torch.no_grad():
+    #     rays = torch.stack([NeRF.rendering.get_rays(H, W, K, p) for p in poses[:, :3, :4]], dim=0).detach().cpu().numpy()
+    rays = np.stack(
+        [
+            NeRF.rendering.get_rays_np(H, W, focal, p)
+            for p in poses[:, :3, :4]
+        ], axis=0
+    )
 
 
     print(f"[DEBUG] Done. concats")
