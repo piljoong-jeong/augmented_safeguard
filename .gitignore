@@ -12,3 +12,4 @@ D-NeRF/data/*
 D-NeRF/configs/*
 D-NeRF/logs/*
 D-NeRF/torchsearchsorted/*
+D-NeRF/mutant.ply
